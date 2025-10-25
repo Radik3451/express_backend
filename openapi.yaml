@@ -348,6 +348,105 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/upload:
+    post:
+      summary: Загрузить файл
+      description: Загружает файл на сервер
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: |
+                    Файл для загрузки. Поддерживаемые типы:
+                    - Изображения: JPEG, PNG, GIF, WebP, SVG
+                    - Документы: PDF, DOC, DOCX, TXT, XLS, XLSX, PPT, PPTX
+                    - Архивы: ZIP, RAR, 7Z
+                    Максимальный размер: 5MB
+      responses:
+        '200':
+          description: Файл успешно загружен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      file:
+                        $ref: '#/components/schemas/UploadedFile'
+        '400':
+          description: Ошибка валидации файла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: Получить список загруженных файлов
+      description: Возвращает список всех загруженных файлов
+      responses:
+        '200':
+          description: Список файлов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FileInfo'
+                  count:
+                    type: integer
+
+  /api/upload/{filename}:
+    delete:
+      summary: Удалить файл
+      description: Удаляет загруженный файл
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          description: Имя файла
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Файл успешно удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      filename:
+                        type: string
+        '404':
+          description: Файл не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Product:
@@ -498,6 +597,45 @@ components:
           type: string
           maxLength: 200
           example: "Современные электронные устройства"
+
+    UploadedFile:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "1640995200000-123456789.jpg"
+        originalName:
+          type: string
+          example: "product-image.jpg"
+        path:
+          type: string
+          example: "uploads/1640995200000-123456789.jpg"
+        size:
+          type: integer
+          example: 1024000
+        mimetype:
+          type: string
+          example: "image/jpeg"
+        url:
+          type: string
+          example: "/uploads/1640995200000-123456789.jpg"
+
+    FileInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "1640995200000-123456789.jpg"
+        size:
+          type: integer
+          example: 1024000
+        created:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00.000Z"
+        url:
+          type: string
+          example: "/uploads/1640995200000-123456789.jpg"
 
     Error:
       type: object
