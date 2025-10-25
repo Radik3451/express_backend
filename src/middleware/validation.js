@@ -9,7 +9,20 @@ const Joi = require('joi');
 const validate = (schema, source = 'body') => {
   return (req, res, next) => {
     const data = req[source];
-    
+
+    // Если данные пустые, возвращаем ошибку валидации
+    if (!data) {
+      return res.status(400).json({
+        success: false,
+        message: 'Отсутствуют данные для валидации',
+        errors: [{
+          field: source,
+          message: `Поле ${source} обязательно`,
+          value: data
+        }]
+      });
+    }
+
     const { error, value } = schema.validate(data, {
       abortEarly: false, // Показывать все ошибки, а не только первую
       stripUnknown: false, // НЕ удалять неизвестные поля - показывать ошибку
@@ -85,6 +98,38 @@ const validateFilterProducts = validate(
   'query'
 );
 
+/**
+ * Middleware для валидации данных регистрации пользователя
+ */
+const validateRegisterUser = validate(
+  require('../schemas/productSchemas').registerUserSchema,
+  'body'
+);
+
+/**
+ * Middleware для валидации данных авторизации пользователя
+ */
+const validateLoginUser = validate(
+  require('../schemas/productSchemas').loginUserSchema,
+  'body'
+);
+
+/**
+ * Middleware для валидации данных обновления профиля пользователя
+ */
+const validateUpdateProfile = validate(
+  require('../schemas/productSchemas').updateProfileSchema,
+  'body'
+);
+
+/**
+ * Middleware для валидации refresh токена
+ */
+const validateRefreshToken = validate(
+  require('../schemas/productSchemas').refreshTokenSchema,
+  'body'
+);
+
 module.exports = {
   validate,
   validateCreateProduct,
@@ -92,5 +137,9 @@ module.exports = {
   validateCreateCategory,
   validateUpdateCategory,
   validateIdParam,
-  validateFilterProducts
+  validateFilterProducts,
+  validateRegisterUser,
+  validateLoginUser,
+  validateUpdateProfile,
+  validateRefreshToken
 };

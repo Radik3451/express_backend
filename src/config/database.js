@@ -58,6 +58,19 @@ class Database {
         )
       `;
 
+      const createUsersTable = `
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT NOT NULL UNIQUE,
+          email TEXT NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          refresh_token TEXT,
+          refresh_token_expires_at DATETIME,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
       this.db.serialize(() => {
         this.db.run(createCategoriesTable, (err) => {
           if (err) {
@@ -75,6 +88,15 @@ class Database {
             return;
           }
           console.log('✅ Таблица products создана');
+        });
+
+        this.db.run(createUsersTable, (err) => {
+          if (err) {
+            console.error('Ошибка создания таблицы users:', err.message);
+            reject(err);
+            return;
+          }
+          console.log('✅ Таблица users создана');
         });
 
         // Добавляем начальные данные

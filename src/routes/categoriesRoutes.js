@@ -1,27 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const categoriesController = require('../controllers/categoriesController');
-const { 
-  validateCreateCategory, 
-  validateUpdateCategory, 
-  validateIdParam 
+const { authenticateToken } = require('../middleware/auth');
+const {
+  validateCreateCategory,
+  validateUpdateCategory,
+  validateIdParam
 } = require('../middleware');
 
-// Маршруты для категорий
+// Маршруты для категорий (все защищены JWT)
 
 // GET /api/categories - получить все категории
-router.get('/', categoriesController.getAllCategories);
+router.get('/', authenticateToken, categoriesController.getAllCategories);
 
 // GET /api/categories/:id - получить категорию по ID
-router.get('/:id', validateIdParam, categoriesController.getCategoryById);
+router.get('/:id', authenticateToken, validateIdParam, categoriesController.getCategoryById);
 
 // POST /api/categories - создать новую категорию
-router.post('/', validateCreateCategory, categoriesController.createCategory);
+router.post('/', authenticateToken, validateCreateCategory, categoriesController.createCategory);
 
 // PATCH /api/categories/:id - обновить категорию по ID
-router.patch('/:id', validateIdParam, validateUpdateCategory, categoriesController.updateCategory);
+router.patch('/:id', authenticateToken, validateIdParam, validateUpdateCategory, categoriesController.updateCategory);
 
 // DELETE /api/categories/:id - удалить категорию по ID
-router.delete('/:id', validateIdParam, categoriesController.deleteCategory);
+router.delete('/:id', authenticateToken, validateIdParam, categoriesController.deleteCategory);
 
 module.exports = router;

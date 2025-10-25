@@ -1,24 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const uploadController = require('../controllers/uploadController');
+const { authenticateToken } = require('../middleware/auth');
 const { validateFileType, saveFile } = require('../middleware/upload');
 
-// Маршруты для загрузки файлов
+// Маршруты для загрузки файлов (все защищены JWT)
 
 // POST /api/upload - загрузить файл
-router.post('/', 
+router.post('/',
+  authenticateToken,
   validateFileType(),
   saveFile('uploads'),
   uploadController.uploadFile
 );
 
 // GET /api/upload - получить список загруженных файлов
-router.get('/', uploadController.getUploadedFiles);
+router.get('/', authenticateToken, uploadController.getUploadedFiles);
 
 // GET /api/upload/:filename - получить информацию о конкретном файле
-router.get('/:filename', uploadController.getFile);
+router.get('/:filename', authenticateToken, uploadController.getFile);
 
 // DELETE /api/upload/:filename - удалить файл
-router.delete('/:filename', uploadController.deleteFile);
+router.delete('/:filename', authenticateToken, uploadController.deleteFile);
 
 module.exports = router;

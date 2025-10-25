@@ -1,28 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const productsController = require('../controllers/productsController');
-const { 
-  validateCreateProduct, 
-  validateUpdateProduct, 
-  validateIdParam, 
-  validateFilterProducts 
+const { authenticateToken } = require('../middleware/auth');
+const {
+  validateCreateProduct,
+  validateUpdateProduct,
+  validateIdParam,
+  validateFilterProducts
 } = require('../middleware');
 
-// Маршруты для товаров
+// Маршруты для товаров (все защищены JWT)
 
 // GET /api/products - получить все товары с фильтрацией
-router.get('/', validateFilterProducts, productsController.getAllProducts);
+router.get('/', authenticateToken, validateFilterProducts, productsController.getAllProducts);
 
 // GET /api/products/:id - получить товар по ID
-router.get('/:id', validateIdParam, productsController.getProductById);
+router.get('/:id', authenticateToken, validateIdParam, productsController.getProductById);
 
 // POST /api/products - создать новый товар
-router.post('/', validateCreateProduct, productsController.createProduct);
+router.post('/', authenticateToken, validateCreateProduct, productsController.createProduct);
 
 // PATCH /api/products/:id - обновить товар по ID
-router.patch('/:id', validateIdParam, validateUpdateProduct, productsController.updateProduct);
+router.patch('/:id', authenticateToken, validateIdParam, validateUpdateProduct, productsController.updateProduct);
 
 // DELETE /api/products/:id - удалить товар по ID
-router.delete('/:id', validateIdParam, productsController.deleteProduct);
+router.delete('/:id', authenticateToken, validateIdParam, productsController.deleteProduct);
 
 module.exports = router;

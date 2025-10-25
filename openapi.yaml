@@ -1,506 +1,23 @@
 openapi: 3.0.3
 info:
   title: Products API
-  description: API для управления каталогом товаров с базой данных SQLite
+  description: API для управления каталогом товаров с базой данных SQLite и JWT авторизацией
   version: 1.0.0
 servers:
   - url: http://localhost:3000
     description: Development server
 
-paths:
-  /api/products:
-    get:
-      summary: Получить товары с фильтрацией
-      description: Возвращает список товаров с возможностью фильтрации по категории и поиска
-      parameters:
-        - name: category_id
-          in: query
-          description: Фильтр по ID категории
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-        - name: q
-          in: query
-          description: Поиск по названию и описанию
-          required: false
-          schema:
-            type: string
-            maxLength: 100
-      responses:
-        '200':
-          description: Список товаров
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Product'
-                  count:
-                    type: integer
-                  filters:
-                    type: object
-                    properties:
-                      category_id:
-                        type: integer
-                        nullable: true
-                      search:
-                        type: string
-                        nullable: true
-
-    post:
-      summary: Создать новый товар
-      description: Создает новый товар в каталоге
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateProductRequest'
-      responses:
-        '201':
-          description: Товар успешно создан
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Product'
-        '400':
-          description: Ошибка валидации или дублирование имени
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/products/{id}:
-    get:
-      summary: Получить товар по ID
-      description: Возвращает товар по указанному ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID товара
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        '200':
-          description: Товар найден
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Product'
-        '404':
-          description: Товар не найден
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    patch:
-      summary: Обновить товар
-      description: Частично обновляет товар по ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID товара
-          schema:
-            type: integer
-            minimum: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateProductRequest'
-      responses:
-        '200':
-          description: Товар успешно обновлен
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Product'
-        '400':
-          description: Ошибка валидации или дублирование имени
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Товар не найден
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    delete:
-      summary: Удалить товар
-      description: Удаляет товар по ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID товара
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        '200':
-          description: Товар успешно удален
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Product'
-        '404':
-          description: Товар не найден
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/categories:
-    get:
-      summary: Получить все категории
-      description: Возвращает список всех категорий с количеством товаров
-      responses:
-        '200':
-          description: Список категорий
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Category'
-                  count:
-                    type: integer
-
-    post:
-      summary: Создать новую категорию
-      description: Создает новую категорию
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCategoryRequest'
-      responses:
-        '201':
-          description: Категория успешно создана
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Category'
-        '400':
-          description: Ошибка валидации или дублирование имени
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/categories/{id}:
-    get:
-      summary: Получить категорию по ID
-      description: Возвращает категорию по указанному ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID категории
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        '200':
-          description: Категория найдена
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Category'
-        '404':
-          description: Категория не найдена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    patch:
-      summary: Обновить категорию
-      description: Частично обновляет категорию по ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID категории
-          schema:
-            type: integer
-            minimum: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCategoryRequest'
-      responses:
-        '200':
-          description: Категория успешно обновлена
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Category'
-        '400':
-          description: Ошибка валидации или дублирование имени
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Категория не найдена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    delete:
-      summary: Удалить категорию
-      description: Удаляет категорию по ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID категории
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        '200':
-          description: Категория успешно удалена
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Category'
-        '404':
-          description: Категория не найдена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/upload:
-    post:
-      summary: Загрузить файл
-      description: Загружает файл на сервер
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: |
-                    Файл для загрузки. Поддерживаемые типы:
-                    - Изображения: JPEG, PNG, GIF, WebP, SVG
-                    - Документы: PDF, DOC, DOCX, TXT, XLS, XLSX, PPT, PPTX
-                    - Архивы: ZIP, RAR, 7Z
-                    Максимальный размер: 5MB
-      responses:
-        '200':
-          description: Файл успешно загружен
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  data:
-                    type: object
-                    properties:
-                      file:
-                        $ref: '#/components/schemas/UploadedFile'
-        '400':
-          description: Ошибка валидации файла
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    get:
-      summary: Получить список загруженных файлов
-      description: Возвращает список всех загруженных файлов
-      responses:
-        '200':
-          description: Список файлов
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/FileInfo'
-                  count:
-                    type: integer
-
-  /api/upload/{filename}:
-    get:
-      summary: Получить информацию о файле
-      description: Получает информацию о конкретном загруженном файле
-      parameters:
-        - name: filename
-          in: path
-          required: true
-          description: Имя файла
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Информация о файле
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                        example: "1640995200000-123456789.jpg"
-                      size:
-                        type: integer
-                        example: 1024000
-                      created:
-                        type: string
-                        format: date-time
-                        example: "2024-01-01T00:00:00.000Z"
-                      modified:
-                        type: string
-                        format: date-time
-                        example: "2024-01-01T00:00:00.000Z"
-                      url:
-                        type: string
-                        example: "/uploads/1640995200000-123456789.jpg"
-        '404':
-          description: Файл не найден
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Внутренняя ошибка сервера
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    delete:
-      summary: Удалить файл
-      description: Удаляет загруженный файл
-      parameters:
-        - name: filename
-          in: path
-          required: true
-          description: Имя файла
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Файл успешно удален
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  data:
-                    type: object
-                    properties:
-                      filename:
-                        type: string
-        '404':
-          description: Файл не найден
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+security:
+  - bearerAuth: []
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен для авторизации
+  
   schemas:
     Product:
       type: object
@@ -512,15 +29,22 @@ components:
       properties:
         id:
           type: integer
+          readOnly: true
           example: 1
         name:
           type: string
+          minLength: 1
+          maxLength: 100
           example: "iPhone 15"
         price:
           type: number
-          example: 999
+          format: float
+          minimum: 0
+          example: 999.99
         description:
           type: string
+          maxLength: 500
+          nullable: true
           example: "Новейший смартфон от Apple"
         category_id:
           type: integer
@@ -528,6 +52,7 @@ components:
           example: 1
         category_name:
           type: string
+          readOnly: true
           nullable: true
           example: "Электроника"
         in_stock:
@@ -536,10 +61,12 @@ components:
         created_at:
           type: string
           format: date-time
+          readOnly: true
           example: "2024-01-01T00:00:00.000Z"
         updated_at:
           type: string
           format: date-time
+          readOnly: true
           example: "2024-01-01T00:00:00.000Z"
 
     CreateProductRequest:
@@ -552,22 +79,23 @@ components:
           type: string
           minLength: 1
           maxLength: 100
-          example: "iPhone 15"
+          example: "Samsung Galaxy S24"
         price:
           type: number
-          minimum: 0.01
-          example: 999
+          format: float
+          minimum: 0
+          example: 899.00
         description:
           type: string
           maxLength: 500
-          example: "Новейший смартфон от Apple"
+          nullable: true
+          example: "Новейший Android смартфон"
         category_id:
           type: integer
-          minimum: 1
+          nullable: true
           example: 1
         in_stock:
           type: boolean
-          default: true
           example: true
 
     UpdateProductRequest:
@@ -581,19 +109,21 @@ components:
           example: "iPhone 15 Pro"
         price:
           type: number
-          minimum: 0.01
-          example: 1199
+          format: float
+          minimum: 0
+          example: 1199.00
         description:
           type: string
           maxLength: 500
-          example: "Профессиональный смартфон"
+          nullable: true
+          example: "Профессиональный смартфон от Apple"
         category_id:
           type: integer
-          minimum: 1
+          nullable: true
           example: 1
         in_stock:
           type: boolean
-          example: false
+          example: true
 
     Category:
       type: object
@@ -603,23 +133,27 @@ components:
       properties:
         id:
           type: integer
+          readOnly: true
           example: 1
         name:
           type: string
+          minLength: 1
+          maxLength: 50
           example: "Электроника"
         description:
           type: string
+          maxLength: 200
+          nullable: true
           example: "Электронные устройства и гаджеты"
-        products_count:
-          type: integer
-          example: 5
         created_at:
           type: string
           format: date-time
+          readOnly: true
           example: "2024-01-01T00:00:00.000Z"
         updated_at:
           type: string
           format: date-time
+          readOnly: true
           example: "2024-01-01T00:00:00.000Z"
 
     CreateCategoryRequest:
@@ -631,7 +165,7 @@ components:
           type: string
           minLength: 1
           maxLength: 50
-          example: "Электроника"
+          example: "Электроника и гаджеты"
         description:
           type: string
           maxLength: 200
@@ -690,6 +224,100 @@ components:
           type: string
           example: "/uploads/1640995200000-123456789.jpg"
 
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - email
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+          example: "john_doe"
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          example: "john@example.com"
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2024-01-01T00:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2024-01-01T00:00:00.000Z"
+
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+          pattern: "^[a-zA-Z0-9_]+$"
+          example: "john_doe"
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          example: "john@example.com"
+        password:
+          type: string
+          minLength: 6
+          maxLength: 100
+          example: "password123"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          example: "password123"
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Пользователь успешно зарегистрирован"
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            accessToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            refreshToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            expiresIn:
+              type: string
+              example: "15m"
+
     Error:
       type: object
       properties:
@@ -713,3 +341,850 @@ components:
               value:
                 type: string
                 example: ""
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Регистрация нового пользователя
+      description: Создает нового пользователя в системе
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Ошибка валидации или пользователь уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/login:
+    post:
+      summary: Авторизация пользователя
+      description: Авторизует пользователя и возвращает JWT токен
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешная авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Неверные учетные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/refresh:
+    post:
+      summary: Обновление access токена
+      description: Обновляет access токен с помощью refresh токена
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Токены успешно обновлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Токены успешно обновлены"
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      refreshToken:
+                        type: string
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      expiresIn:
+                        type: string
+                        example: "15m"
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Недействительный или просроченный refresh токен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/logout:
+    post:
+      summary: Выход из системы
+      description: Удаляет refresh токен пользователя
+      requestBody:
+        required: false
+      responses:
+        '200':
+          description: Успешный выход из системы
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Успешный выход из системы"
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/products:
+    get:
+      summary: Получить товары с фильтрацией
+      description: Возвращает список товаров с возможностью фильтрации по категории и поиска
+      parameters:
+        - name: category_id
+          in: query
+          description: Фильтр по ID категории
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: q
+          in: query
+          description: Поисковый запрос по названию и описанию
+          required: false
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Список товаров
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  count:
+                    type: integer
+                    example: 3
+                  filters:
+                    type: object
+                    properties:
+                      category_id:
+                        type: integer
+                        nullable: true
+                        example: 1
+                      search:
+                        type: string
+                        nullable: true
+                        example: "iPhone"
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Создать новый товар
+      description: Создает новый товар в каталоге
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Товар успешно создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Товар успешно создан"
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '400':
+          description: Ошибка валидации или товар с таким именем уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/products/{id}:
+    get:
+      summary: Получить товар по ID
+      description: Возвращает товар по указанному ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID товара
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Информация о товаре
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Обновить товар
+      description: Частично обновляет товар по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID товара
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: Товар успешно обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Товар успешно обновлен"
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '400':
+          description: Ошибка валидации или товар с таким именем уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Удалить товар
+      description: Удаляет товар по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID товара
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Товар успешно удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Товар успешно удален"
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/categories:
+    get:
+      summary: Получить все категории
+      description: Возвращает список всех категорий
+      responses:
+        '200':
+          description: Список категорий
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                  count:
+                    type: integer
+                    example: 2
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Создать новую категорию
+      description: Создает новую категорию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: Категория успешно создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Категория успешно создана"
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '400':
+          description: Ошибка валидации или категория с таким именем уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/categories/{id}:
+    get:
+      summary: Получить категорию по ID
+      description: Возвращает категорию по указанному ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID категории
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Информация о категории
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Категория не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Обновить категорию
+      description: Частично обновляет категорию по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID категории
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          description: Категория успешно обновлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Категория успешно обновлена"
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '400':
+          description: Ошибка валидации или категория с таким именем уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Категория не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Удалить категорию
+      description: Удаляет категорию по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID категории
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Категория успешно удалена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Категория успешно удалена"
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Категория не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/upload:
+    post:
+      summary: Загрузить файл
+      description: |
+        Загружает файл на сервер.
+        Поддерживаемые типы:
+        - Изображения: JPEG, PNG, GIF, WebP, SVG
+        - Документы: PDF, DOC, DOCX, TXT, XLS, XLSX, PPT, PPTX
+        - Архивы: ZIP, RAR, 7Z
+        Максимальный размер: 5MB
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Файл для загрузки
+      responses:
+        '200':
+          description: Файл успешно загружен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      file:
+                        $ref: '#/components/schemas/UploadedFile'
+        '400':
+          description: Ошибка валидации файла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: Размер файла превышает лимит
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: Получить список загруженных файлов
+      description: Возвращает список всех загруженных файлов
+      responses:
+        '200':
+          description: Список файлов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FileInfo'
+                  count:
+                    type: integer
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/upload/{filename}:
+    get:
+      summary: Получить информацию о файле
+      description: Получает информацию о конкретном загруженном файле
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          description: Имя файла
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Информация о файле
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: "1640995200000-123456789.jpg"
+                      size:
+                        type: integer
+                        example: 1024000
+                      created:
+                        type: string
+                        format: date-time
+                        example: "2024-01-01T00:00:00.000Z"
+                      modified:
+                        type: string
+                        format: date-time
+                        example: "2024-01-01T00:00:00.000Z"
+                      url:
+                        type: string
+                        example: "/uploads/1640995200000-123456789.jpg"
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Файл не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Удалить файл
+      description: Удаляет загруженный файл
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          description: Имя файла
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Файл успешно удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      filename:
+                        type: string
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Файл не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

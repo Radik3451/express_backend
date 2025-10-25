@@ -8,6 +8,7 @@ const database = require('./src/config/database');
 const productsRoutes = require('./src/routes/productsRoutes');
 const categoriesRoutes = require('./src/routes/categoriesRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
+const authRoutes = require('./src/routes/authRoutes');
 const { errorHandler, notFoundHandler, requestLogger } = require('./src/middleware');
 const { uploadMiddleware } = require('./src/middleware/upload');
 
@@ -20,8 +21,8 @@ const openApiSpec = YAML.parse(fs.readFileSync('./openapi.yaml', 'utf8'));
 app.use(express.json());
 app.use(requestLogger);
 
-// Middleware для загрузки файлов
-app.use(uploadMiddleware);
+// Middleware для загрузки файлов (только для маршрутов upload)
+app.use(`${config.api.baseUrl}/upload`, uploadMiddleware);
 
 // Обработка ошибок multipart
 app.use((error, req, res, next) => {
@@ -44,6 +45,7 @@ app.use((error, req, res, next) => {
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
 // Маршруты API
+app.use(`${config.api.baseUrl}/auth`, authRoutes);
 app.use(`${config.api.baseUrl}/products`, productsRoutes);
 app.use(`${config.api.baseUrl}/categories`, categoriesRoutes);
 app.use(`${config.api.baseUrl}/upload`, uploadRoutes);

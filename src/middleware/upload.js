@@ -29,10 +29,10 @@ const uploadMiddleware = fileUpload({
  */
 const validateFileType = (allowedTypes = [
   // Изображения
-  'image/jpeg', 
-  'image/png', 
-  'image/gif', 
-  'image/webp', 
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
   'image/svg+xml',
   // Документы
   'application/pdf',
@@ -49,11 +49,7 @@ const validateFileType = (allowedTypes = [
   'application/x-7z-compressed'
 ]) => {
   return (req, res, next) => {
-    console.log('Validating file type...');
-    console.log('req.files:', req.files);
-    
     if (!req.files || Object.keys(req.files).length === 0) {
-      console.log('No files found in request');
       return res.status(400).json({
         success: false,
         message: 'Файл не был загружен'
@@ -63,24 +59,19 @@ const validateFileType = (allowedTypes = [
     const file = req.files.file;
     
     if (!file) {
-      console.log('No "file" field found');
       return res.status(400).json({
         success: false,
         message: 'Поле "file" обязательно'
       });
     }
-
-    console.log('File found:', file.name, file.mimetype);
     
     if (!allowedTypes.includes(file.mimetype)) {
-      console.log('File type not allowed:', file.mimetype);
       return res.status(400).json({
         success: false,
         message: `Неподдерживаемый тип файла: ${file.mimetype}. Разрешены: изображения (JPEG, PNG, GIF, WebP, SVG), документы (PDF, DOC, DOCX, TXT, XLS, XLSX, PPT, PPTX), архивы (ZIP, RAR, 7Z)`
       });
     }
 
-    console.log('File validation passed');
     next();
   };
 };
@@ -92,13 +83,9 @@ const validateFileType = (allowedTypes = [
  */
 const saveFile = (uploadPath = 'uploads') => {
   return (req, res, next) => {
-    console.log('Saving file...');
-    console.log('uploadPath:', uploadPath);
-    
     const file = req.files.file;
     
     if (!file) {
-      console.log('No file to save');
       return res.status(400).json({
         success: false,
         message: 'Файл не найден для сохранения'
@@ -110,8 +97,6 @@ const saveFile = (uploadPath = 'uploads') => {
     const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExtension}`;
     const filePath = path.join(uploadPath, fileName);
     
-    console.log('Saving file to:', filePath);
-    
     // Сохраняем файл
     file.mv(filePath, (err) => {
       if (err) {
@@ -121,8 +106,6 @@ const saveFile = (uploadPath = 'uploads') => {
           message: 'Ошибка при сохранении файла'
         });
       }
-      
-      console.log('File saved successfully');
       
       // Добавляем информацию о файле в запрос
       req.uploadedFile = {
@@ -134,7 +117,6 @@ const saveFile = (uploadPath = 'uploads') => {
         url: `/uploads/${fileName}`
       };
       
-      console.log('req.uploadedFile set:', req.uploadedFile);
       next();
     });
   };

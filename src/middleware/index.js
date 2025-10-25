@@ -1,6 +1,11 @@
 // Middleware для обработки ошибок
 const errorHandler = (err, req, res, next) => {
-  console.error('Ошибка:', err.stack);
+  const timestamp = new Date().toISOString();
+  
+  // Логируем ошибку с деталями
+  console.error(`${timestamp} - ERROR: ${err.message}`);
+  console.error(`Stack: ${err.stack}`);
+  console.error(`Request: ${req.method} ${req.url}`);
   
   // Ошибка валидации JSON
   if (err.type === 'entity.parse.failed') {
@@ -28,7 +33,38 @@ const notFoundHandler = (req, res) => {
 // Middleware для логирования запросов
 const requestLogger = (req, res, next) => {
   const timestamp = new Date().toISOString();
-  console.log(`${timestamp} - ${req.method} ${req.url}`);
+  const startTime = Date.now();
+  
+  // Перехватываем ответ для логирования статуса
+  const originalSend = res.send;
+  res.send = function(data) {
+    const duration = Date.now() - startTime;
+    const statusCode = res.statusCode;
+    
+    // Определяем тип сообщения на основе статуса
+    let logLevel = 'INFO';
+    let message = '';
+    
+    if (statusCode >= 400) {
+      logLevel = 'ERROR';
+      try {
+        const responseData = JSON.parse(data);
+        message = responseData.message || 'Ошибка';
+      } catch (e) {
+        message = 'Ошибка';
+      }
+    } else {
+      logLevel = 'SUCCESS';
+      message = 'OK';
+    }
+    
+    // Логируем только один раз - с результатом
+    console.log(`${timestamp} - ${req.method} ${req.url} - ${statusCode} ${logLevel} - ${message} (${duration}ms)`);
+    
+    // Вызываем оригинальный send
+    return originalSend.call(this, data);
+  };
+  
   next();
 };
 
@@ -39,7 +75,11 @@ const {
   validateCreateCategory,
   validateUpdateCategory,
   validateIdParam,
-  validateFilterProducts
+  validateFilterProducts,
+  validateRegisterUser,
+  validateLoginUser,
+  validateUpdateProfile,
+  validateRefreshToken
 } = require('./validation');
 
 module.exports = {
@@ -51,5 +91,9 @@ module.exports = {
   validateCreateCategory,
   validateUpdateCategory,
   validateIdParam,
-  validateFilterProducts
+  validateFilterProducts,
+  validateRegisterUser,
+  validateLoginUser,
+  validateUpdateProfile,
+  validateRefreshToken
 };

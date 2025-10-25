@@ -188,11 +188,117 @@ const filterProductsSchema = Joi.object({
     })
 });
 
+/**
+ * Схема для регистрации пользователя
+ */
+const registerUserSchema = Joi.object({
+  username: Joi.string()
+    .min(3)
+    .max(30)
+    .pattern(/^[a-zA-Z0-9_]+$/)
+    .required()
+    .messages({
+      'string.empty': 'Имя пользователя не может быть пустым',
+      'string.min': 'Имя пользователя должно содержать минимум 3 символа',
+      'string.max': 'Имя пользователя не может превышать 30 символов',
+      'string.pattern.base': 'Имя пользователя может содержать только буквы, цифры и подчеркивания',
+      'any.required': 'Имя пользователя обязательно'
+    }),
+
+  email: Joi.string()
+    .email()
+    .max(100)
+    .required()
+    .messages({
+      'string.empty': 'Email не может быть пустым',
+      'string.email': 'Некорректный формат email',
+      'string.max': 'Email не может превышать 100 символов',
+      'any.required': 'Email обязателен'
+    }),
+
+  password: Joi.string()
+    .min(6)
+    .max(100)
+    .required()
+    .messages({
+      'string.empty': 'Пароль не может быть пустым',
+      'string.min': 'Пароль должен содержать минимум 6 символов',
+      'string.max': 'Пароль не может превышать 100 символов',
+      'any.required': 'Пароль обязателен'
+    })
+}).strict();
+
+/**
+ * Схема для авторизации пользователя
+ */
+const loginUserSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .required()
+    .messages({
+      'string.empty': 'Email не может быть пустым',
+      'string.email': 'Некорректный формат email',
+      'any.required': 'Email обязателен'
+    }),
+
+  password: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Пароль не может быть пустым',
+      'any.required': 'Пароль обязателен'
+    })
+}).strict();
+
+/**
+ * Схема для обновления профиля пользователя
+ */
+const updateProfileSchema = Joi.object({
+  username: Joi.string()
+    .min(3)
+    .max(30)
+    .pattern(/^[a-zA-Z0-9_]+$/)
+    .optional()
+    .messages({
+      'string.empty': 'Имя пользователя не может быть пустым',
+      'string.min': 'Имя пользователя должно содержать минимум 3 символа',
+      'string.max': 'Имя пользователя не может превышать 30 символов',
+      'string.pattern.base': 'Имя пользователя может содержать только буквы, цифры и подчеркивания'
+    }),
+
+  email: Joi.string()
+    .email()
+    .max(100)
+    .optional()
+    .messages({
+      'string.empty': 'Email не может быть пустым',
+      'string.email': 'Некорректный формат email',
+      'string.max': 'Email не может превышать 100 символов'
+    })
+}).min(1).messages({
+  'object.min': 'Необходимо передать хотя бы одно поле для обновления'
+}).strict();
+
+/**
+ * Схема для обновления токенов
+ */
+const refreshTokenSchema = Joi.object({
+  refresh_token: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Refresh токен не может быть пустым',
+      'any.required': 'Refresh токен обязателен'
+    })
+}).strict();
+
 module.exports = {
   createProductSchema,
   updateProductSchema,
   createCategorySchema,
   updateCategorySchema,
   idParamSchema,
-  filterProductsSchema
+  filterProductsSchema,
+  registerUserSchema,
+  loginUserSchema,
+  updateProfileSchema,
+  refreshTokenSchema
 };
