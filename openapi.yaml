@@ -413,6 +413,59 @@ paths:
                     type: integer
 
   /api/upload/{filename}:
+    get:
+      summary: Получить информацию о файле
+      description: Получает информацию о конкретном загруженном файле
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          description: Имя файла
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Информация о файле
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: "1640995200000-123456789.jpg"
+                      size:
+                        type: integer
+                        example: 1024000
+                      created:
+                        type: string
+                        format: date-time
+                        example: "2024-01-01T00:00:00.000Z"
+                      modified:
+                        type: string
+                        format: date-time
+                        example: "2024-01-01T00:00:00.000Z"
+                      url:
+                        type: string
+                        example: "/uploads/1640995200000-123456789.jpg"
+        '404':
+          description: Файл не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
     delete:
       summary: Удалить файл
       description: Удаляет загруженный файл

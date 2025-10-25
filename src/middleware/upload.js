@@ -19,7 +19,7 @@ const uploadMiddleware = fileUpload({
     });
   },
   useTempFiles: false, // НЕ использовать временные файлы - работать с буфером
-  debug: true // Включить отладку
+      debug: false // Отключить отладку
 });
 
 /**

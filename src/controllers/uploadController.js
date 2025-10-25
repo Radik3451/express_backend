@@ -3,6 +3,9 @@
  * @typedef {import('express').Response} Response
  */
 
+const path = require('path');
+const fs = require('fs').promises; // Используем promises версию fs
+
 class UploadController {
   /**
    * Загрузить файл
@@ -11,19 +14,15 @@ class UploadController {
    */
   async uploadFile(req, res) {
     try {
-      console.log('Upload request received');
-      console.log('req.files:', req.files);
-      console.log('req.uploadedFile:', req.uploadedFile);
-      
       if (!req.uploadedFile) {
         return res.status(400).json({
           success: false,
           message: 'Файл не был загружен или обработан'
         });
       }
-      
+
       const uploadedFile = req.uploadedFile;
-      
+
       res.json({
         success: true,
         message: 'Файл успешно загружен',
@@ -36,6 +35,49 @@ class UploadController {
       res.status(500).json({
         success: false,
         message: 'Ошибка при загрузке файла'
+      });
+    }
+  }
+
+  /**
+   * Получить конкретный файл по названию
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
+  async getFile(req, res) {
+    try {
+      const { filename } = req.params;
+
+      const filePath = path.join(__dirname, '../../uploads', filename);
+
+      // Проверяем, существует ли файл
+      try {
+        await fs.access(filePath);
+      } catch (error) {
+        return res.status(404).json({
+          success: false,
+          message: 'Файл не найден.'
+        });
+      }
+
+      // Получаем информацию о файле
+      const stats = await fs.stat(filePath);
+
+      res.json({
+        success: true,
+        data: {
+          name: filename,
+          size: stats.size,
+          created: stats.birthtime.toISOString(),
+          modified: stats.mtime.toISOString(),
+          url: `/uploads/${filename}`
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка при получении файла:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка при получении файла'
       });
     }
   }

@@ -40,10 +40,6 @@ app.use((error, req, res, next) => {
   next(error);
 });
 
-// Статические файлы
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/static', express.static(path.join(__dirname, 'public')));
-
 // Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
@@ -51,6 +47,10 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 app.use(`${config.api.baseUrl}/products`, productsRoutes);
 app.use(`${config.api.baseUrl}/categories`, categoriesRoutes);
 app.use(`${config.api.baseUrl}/upload`, uploadRoutes);
+
+// Статические файлы (после API маршрутов)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/static', express.static(path.join(__dirname, 'public')));
 
 // Обработка несуществующих маршрутов
 app.use(notFoundHandler);
