@@ -1,7 +1,17 @@
+/**
+ * @typedef {import('../models/products')} ProductModel
+ * @typedef {import('express').Request} Request
+ * @typedef {import('express').Response} Response
+ */
+
 const productModel = require('../models/products');
 
 class ProductsController {
-  // Получить товары с фильтрацией (по категории и/или поиск)
+  /**
+   * Получить товары с фильтрацией (по категории и/или поиск)
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
   getAllProducts(req, res) {
     try {
       const { category, q } = req.query;
@@ -44,7 +54,11 @@ class ProductsController {
     }
   }
 
-  // Получить товар по ID
+  /**
+   * Получить товар по ID
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
   getProductById(req, res) {
     try {
       const id = parseInt(req.params.id);
@@ -69,7 +83,11 @@ class ProductsController {
     }
   }
 
-  // Создать новый товар
+  /**
+   * Создать новый товар
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
   createProduct(req, res) {
     try {
       const { name, price, description, category, inStock } = req.body;
@@ -104,7 +122,11 @@ class ProductsController {
     }
   }
 
-  // Частично обновить товар (PATCH)
+  /**
+   * Частично обновить товар (PATCH)
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
   updateProduct(req, res) {
     try {
       const id = parseInt(req.params.id);
@@ -145,7 +167,11 @@ class ProductsController {
     }
   }
 
-  // Удалить товар
+  /**
+   * Удалить товар
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
   deleteProduct(req, res) {
     try {
       const id = parseInt(req.params.id);

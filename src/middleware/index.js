@@ -32,8 +32,20 @@ const requestLogger = (req, res, next) => {
   next();
 };
 
+// Экспорт валидационных middleware
+const {
+  validateCreateProduct,
+  validateUpdateProduct,
+  validateIdParam,
+  validateFilterProducts
+} = require('./validation');
+
 module.exports = {
   errorHandler,
   notFoundHandler,
-  requestLogger
+  requestLogger,
+  validateCreateProduct,
+  validateUpdateProduct,
+  validateIdParam,
+  validateFilterProducts
 };

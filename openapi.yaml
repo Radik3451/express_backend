@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  title: Products API
+  description: API для управления каталогом товаров
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+paths:
+  /api/products:
+    get:
+      summary: Получить товары с фильтрацией
+      description: Возвращает список товаров с возможностью фильтрации по категории и поиска
+      parameters:
+        - name: category
+          in: query
+          description: Фильтр по категории
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          description: Поиск по названию и описанию
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список товаров
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  count:
+                    type: integer
+                  filters:
+                    type: object
+                    properties:
+                      category:
+                        type: string
+                        nullable: true
+                      search:
+                        type: string
+                        nullable: true
+
+    post:
+      summary: Создать новый товар
+      description: Создает новый товар в каталоге
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Товар успешно создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '400':
+          description: Ошибка валидации или дублирование имени
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/products/{id}:
+    get:
+      summary: Получить товар по ID
+      description: Возвращает товар по указанному ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID товара
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Товар найден
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '404':
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Обновить товар
+      description: Частично обновляет товар по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID товара
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: Товар успешно обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '400':
+          description: Ошибка валидации или дублирование имени
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Удалить товар
+      description: Удаляет товар по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID товара
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Товар успешно удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '404':
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - inStock
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "iPhone 15"
+        price:
+          type: number
+          example: 999
+        description:
+          type: string
+          example: "Новейший смартфон от Apple"
+        category:
+          type: string
+          example: "Электроника"
+        inStock:
+          type: boolean
+          example: true
+
+    CreateProductRequest:
+      type: object
+      required:
+        - name
+        - price
+      properties:
+        name:
+          type: string
+          example: "iPhone 15"
+        price:
+          type: number
+          example: 999
+        description:
+          type: string
+          example: "Новейший смартфон от Apple"
+        category:
+          type: string
+          example: "Электроника"
+        inStock:
+          type: boolean
+          example: true
+
+    UpdateProductRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          example: "iPhone 15 Pro"
+        price:
+          type: number
+          example: 1199
+        description:
+          type: string
+          example: "Профессиональный смартфон"
+        category:
+          type: string
+          example: "Электроника"
+        inStock:
+          type: boolean
+          example: false
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Товар не найден"
