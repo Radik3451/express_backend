@@ -18,6 +18,7 @@ server/
 │   └── routes/
 │       └──  productsRoutes.js # Маршруты для товаров
 ├── index.js                  # Основной файл сервера
+├── openapi.yaml              # Openapi спецификация
 ├── package.json
 ├── yarn.lock
 └── README.md
