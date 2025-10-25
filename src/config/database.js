@@ -1,0 +1,183 @@
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+/**
+ * Класс для работы с базой данных SQLite
+ */
+class Database {
+  constructor() {
+    this.db = null;
+    this.dbPath = path.join(__dirname, '../../database.sqlite');
+  }
+
+  /**
+   * Подключение к базе данных
+   * @returns {Promise<void>}
+   */
+  async connect() {
+    return new Promise((resolve, reject) => {
+      this.db = new sqlite3.Database(this.dbPath, (err) => {
+        if (err) {
+          console.error('Ошибка подключения к БД:', err.message);
+          reject(err);
+        } else {
+          console.log('✅ Подключение к SQLite БД установлено');
+          resolve();
+        }
+      });
+    });
+  }
+
+  /**
+   * Инициализация таблиц
+   * @returns {Promise<void>}
+   */
+  async initTables() {
+    return new Promise((resolve, reject) => {
+      const createCategoriesTable = `
+        CREATE TABLE IF NOT EXISTS categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          description TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
+      const createProductsTable = `
+        CREATE TABLE IF NOT EXISTS products (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          price REAL NOT NULL,
+          description TEXT,
+          category_id INTEGER,
+          in_stock BOOLEAN DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
+        )
+      `;
+
+      this.db.serialize(() => {
+        this.db.run(createCategoriesTable, (err) => {
+          if (err) {
+            console.error('Ошибка создания таблицы categories:', err.message);
+            reject(err);
+            return;
+          }
+          console.log('✅ Таблица categories создана');
+        });
+
+        this.db.run(createProductsTable, (err) => {
+          if (err) {
+            console.error('Ошибка создания таблицы products:', err.message);
+            reject(err);
+            return;
+          }
+          console.log('✅ Таблица products создана');
+        });
+
+        // Добавляем начальные данные
+        this.seedData().then(() => {
+          console.log('✅ Начальные данные добавлены');
+          resolve();
+        }).catch(reject);
+      });
+    });
+  }
+
+  /**
+   * Добавление начальных данных
+   * @returns {Promise<void>}
+   */
+  async seedData() {
+    return new Promise((resolve, reject) => {
+      // Проверяем, есть ли уже данные
+      this.db.get("SELECT COUNT(*) as count FROM categories", (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (row.count > 0) {
+          resolve();
+          return;
+        }
+
+        // Добавляем категории
+        const categories = [
+          { name: 'Электроника', description: 'Электронные устройства и гаджеты' },
+          { name: 'Обувь', description: 'Обувь для всех возрастов' },
+          { name: 'Одежда', description: 'Модная одежда' }
+        ];
+
+        const insertCategory = this.db.prepare(`
+          INSERT INTO categories (name, description) VALUES (?, ?)
+        `);
+
+        categories.forEach(category => {
+          insertCategory.run(category.name, category.description);
+        });
+
+        insertCategory.finalize();
+
+        // Добавляем товары
+        const products = [
+          { name: 'iPhone 15', price: 999, description: 'Новейший смартфон от Apple', category_id: 1, in_stock: 1 },
+          { name: 'MacBook Pro', price: 1999, description: 'Профессиональный ноутбук для работы', category_id: 1, in_stock: 1 },
+          { name: 'Nike Air Max', price: 120, description: 'Удобные кроссовки для спорта', category_id: 2, in_stock: 0 }
+        ];
+
+        const insertProduct = this.db.prepare(`
+          INSERT INTO products (name, price, description, category_id, in_stock) 
+          VALUES (?, ?, ?, ?, ?)
+        `);
+
+        products.forEach(product => {
+          insertProduct.run(
+            product.name, 
+            product.price, 
+            product.description, 
+            product.category_id, 
+            product.in_stock
+          );
+        });
+
+        insertProduct.finalize();
+        resolve();
+      });
+    });
+  }
+
+  /**
+   * Получение экземпляра базы данных
+   * @returns {sqlite3.Database}
+   */
+  getDb() {
+    return this.db;
+  }
+
+  /**
+   * Закрытие соединения с базой данных
+   * @returns {Promise<void>}
+   */
+  async close() {
+    return new Promise((resolve, reject) => {
+      if (this.db) {
+        this.db.close((err) => {
+          if (err) {
+            console.error('Ошибка закрытия БД:', err.message);
+            reject(err);
+          } else {
+            console.log('✅ Соединение с БД закрыто');
+            resolve();
+          }
+        });
+      } else {
+        resolve();
+      }
+    });
+  }
+}
+
+module.exports = new Database();

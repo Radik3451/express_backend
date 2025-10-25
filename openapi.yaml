@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Products API
-  description: API для управления каталогом товаров
+  description: API для управления каталогом товаров с базой данных SQLite
   version: 1.0.0
 servers:
   - url: http://localhost:3000
@@ -13,18 +13,20 @@ paths:
       summary: Получить товары с фильтрацией
       description: Возвращает список товаров с возможностью фильтрации по категории и поиска
       parameters:
-        - name: category
+        - name: category_id
           in: query
-          description: Фильтр по категории
+          description: Фильтр по ID категории
           required: false
           schema:
-            type: string
+            type: integer
+            minimum: 1
         - name: q
           in: query
           description: Поиск по названию и описанию
           required: false
           schema:
             type: string
+            maxLength: 100
       responses:
         '200':
           description: Список товаров
@@ -44,8 +46,8 @@ paths:
                   filters:
                     type: object
                     properties:
-                      category:
-                        type: string
+                      category_id:
+                        type: integer
                         nullable: true
                       search:
                         type: string
@@ -92,6 +94,7 @@ paths:
           description: ID товара
           schema:
             type: integer
+            minimum: 1
       responses:
         '200':
           description: Товар найден
@@ -121,6 +124,7 @@ paths:
           description: ID товара
           schema:
             type: integer
+            minimum: 1
       requestBody:
         required: true
         content:
@@ -164,6 +168,7 @@ paths:
           description: ID товара
           schema:
             type: integer
+            minimum: 1
       responses:
         '200':
           description: Товар успешно удален
@@ -185,6 +190,164 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/categories:
+    get:
+      summary: Получить все категории
+      description: Возвращает список всех категорий с количеством товаров
+      responses:
+        '200':
+          description: Список категорий
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                  count:
+                    type: integer
+
+    post:
+      summary: Создать новую категорию
+      description: Создает новую категорию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: Категория успешно создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '400':
+          description: Ошибка валидации или дублирование имени
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/categories/{id}:
+    get:
+      summary: Получить категорию по ID
+      description: Возвращает категорию по указанному ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID категории
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Категория найдена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '404':
+          description: Категория не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Обновить категорию
+      description: Частично обновляет категорию по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID категории
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          description: Категория успешно обновлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '400':
+          description: Ошибка валидации или дублирование имени
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Категория не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Удалить категорию
+      description: Удаляет категорию по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID категории
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Категория успешно удалена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '404':
+          description: Категория не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Product:
@@ -193,7 +356,7 @@ components:
         - id
         - name
         - price
-        - inStock
+        - in_stock
       properties:
         id:
           type: integer
@@ -207,12 +370,25 @@ components:
         description:
           type: string
           example: "Новейший смартфон от Apple"
-        category:
+        category_id:
+          type: integer
+          nullable: true
+          example: 1
+        category_name:
           type: string
+          nullable: true
           example: "Электроника"
-        inStock:
+        in_stock:
           type: boolean
           example: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00.000Z"
 
     CreateProductRequest:
       type: object
@@ -222,18 +398,24 @@ components:
       properties:
         name:
           type: string
+          minLength: 1
+          maxLength: 100
           example: "iPhone 15"
         price:
           type: number
+          minimum: 0.01
           example: 999
         description:
           type: string
+          maxLength: 500
           example: "Новейший смартфон от Apple"
-        category:
-          type: string
-          example: "Электроника"
-        inStock:
+        category_id:
+          type: integer
+          minimum: 1
+          example: 1
+        in_stock:
           type: boolean
+          default: true
           example: true
 
     UpdateProductRequest:
@@ -242,19 +424,80 @@ components:
       properties:
         name:
           type: string
+          minLength: 1
+          maxLength: 100
           example: "iPhone 15 Pro"
         price:
           type: number
+          minimum: 0.01
           example: 1199
         description:
           type: string
+          maxLength: 500
           example: "Профессиональный смартфон"
-        category:
-          type: string
-          example: "Электроника"
-        inStock:
+        category_id:
+          type: integer
+          minimum: 1
+          example: 1
+        in_stock:
           type: boolean
           example: false
+
+    Category:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Электроника"
+        description:
+          type: string
+          example: "Электронные устройства и гаджеты"
+        products_count:
+          type: integer
+          example: 5
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00.000Z"
+
+    CreateCategoryRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: "Электроника"
+        description:
+          type: string
+          maxLength: 200
+          example: "Электронные устройства и гаджеты"
+
+    UpdateCategoryRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: "Электроника и гаджеты"
+        description:
+          type: string
+          maxLength: 200
+          example: "Современные электронные устройства"
 
     Error:
       type: object
@@ -265,3 +508,17 @@ components:
         message:
           type: string
           example: "Товар не найден"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "name"
+              message:
+                type: string
+                example: "Название товара обязательно"
+              value:
+                type: string
+                example: ""

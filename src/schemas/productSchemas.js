@@ -28,24 +28,28 @@ const createProductSchema = Joi.object({
   description: Joi.string()
     .max(500)
     .allow('')
-    .optional()
+    .default('')
     .messages({
       'string.max': 'Описание не может превышать 500 символов'
     }),
   
-  category: Joi.string()
-    .max(50)
+  category_id: Joi.number()
+    .integer()
+    .positive()
+    .allow(null)
     .optional()
     .messages({
-      'string.max': 'Категория не может превышать 50 символов'
+      'number.base': 'ID категории должен быть числом',
+      'number.integer': 'ID категории должен быть целым числом',
+      'number.positive': 'ID категории должен быть положительным числом'
     }),
   
-  inStock: Joi.boolean()
-    .optional()
+  in_stock: Joi.boolean()
+    .default(true)
     .messages({
-      'boolean.base': 'Поле inStock должно быть булевым значением'
+      'boolean.base': 'Поле in_stock должно быть булевым значением'
     })
-});
+}).strict(); // Строгая валидация - запрет неизвестных полей
 
 /**
  * Схема для обновления товара (все поля опциональны)
@@ -78,21 +82,73 @@ const updateProductSchema = Joi.object({
       'string.max': 'Описание не может превышать 500 символов'
     }),
   
-  category: Joi.string()
-    .max(50)
+  category_id: Joi.number()
+    .integer()
+    .positive()
     .optional()
     .messages({
-      'string.max': 'Категория не может превышать 50 символов'
+      'number.base': 'ID категории должен быть числом',
+      'number.integer': 'ID категории должен быть целым числом',
+      'number.positive': 'ID категории должен быть положительным числом'
     }),
   
-  inStock: Joi.boolean()
+  in_stock: Joi.boolean()
     .optional()
     .messages({
-      'boolean.base': 'Поле inStock должно быть булевым значением'
+      'boolean.base': 'Поле in_stock должно быть булевым значением'
     })
 }).min(1).messages({
   'object.min': 'Необходимо передать хотя бы одно поле для обновления'
-});
+}).strict(); // Строгая валидация - запрет неизвестных полей
+
+/**
+ * Схема для создания категории
+ */
+const createCategorySchema = Joi.object({
+  name: Joi.string()
+    .min(1)
+    .max(50)
+    .required()
+    .messages({
+      'string.empty': 'Название категории не может быть пустым',
+      'string.min': 'Название категории должно содержать минимум 1 символ',
+      'string.max': 'Название категории не может превышать 50 символов',
+      'any.required': 'Название категории обязательно'
+    }),
+  
+  description: Joi.string()
+    .max(200)
+    .allow('')
+    .default('')
+    .messages({
+      'string.max': 'Описание не может превышать 200 символов'
+    })
+}).strict(); // Строгая валидация - запрет неизвестных полей
+
+/**
+ * Схема для обновления категории (все поля опциональны)
+ */
+const updateCategorySchema = Joi.object({
+  name: Joi.string()
+    .min(1)
+    .max(50)
+    .optional()
+    .messages({
+      'string.empty': 'Название категории не может быть пустым',
+      'string.min': 'Название категории должно содержать минимум 1 символ',
+      'string.max': 'Название категории не может превышать 50 символов'
+    }),
+  
+  description: Joi.string()
+    .max(200)
+    .allow('')
+    .optional()
+    .messages({
+      'string.max': 'Описание не может превышать 200 символов'
+    })
+}).min(1).messages({
+  'object.min': 'Необходимо передать хотя бы одно поле для обновления'
+}).strict(); // Строгая валидация - запрет неизвестных полей
 
 /**
  * Схема для валидации ID параметра
@@ -111,14 +167,17 @@ const idParamSchema = Joi.object({
 });
 
 /**
- * Схема для валидации query параметров фильтрации
+ * Схема для валидации query параметров фильтрации товаров
  */
 const filterProductsSchema = Joi.object({
-  category: Joi.string()
-    .max(50)
+  category_id: Joi.number()
+    .integer()
+    .positive()
     .optional()
     .messages({
-      'string.max': 'Категория не может превышать 50 символов'
+      'number.base': 'ID категории должен быть числом',
+      'number.integer': 'ID категории должен быть целым числом',
+      'number.positive': 'ID категории должен быть положительным числом'
     }),
   
   q: Joi.string()
@@ -132,6 +191,8 @@ const filterProductsSchema = Joi.object({
 module.exports = {
   createProductSchema,
   updateProductSchema,
+  createCategorySchema,
+  updateCategorySchema,
   idParamSchema,
   filterProductsSchema
 };

@@ -12,8 +12,9 @@ const validate = (schema, source = 'body') => {
     
     const { error, value } = schema.validate(data, {
       abortEarly: false, // Показывать все ошибки, а не только первую
-      stripUnknown: true, // Удалять неизвестные поля
-      convert: true // Автоматически конвертировать типы
+      stripUnknown: false, // НЕ удалять неизвестные поля - показывать ошибку
+      convert: true, // Автоматически конвертировать типы
+      allowUnknown: false // Запретить неизвестные поля
     });
 
     if (error) {
@@ -53,6 +54,22 @@ const validateUpdateProduct = validate(
 );
 
 /**
+ * Middleware для валидации данных создания категории
+ */
+const validateCreateCategory = validate(
+  require('../schemas/productSchemas').createCategorySchema,
+  'body'
+);
+
+/**
+ * Middleware для валидации данных обновления категории
+ */
+const validateUpdateCategory = validate(
+  require('../schemas/productSchemas').updateCategorySchema,
+  'body'
+);
+
+/**
  * Middleware для валидации ID параметра
  */
 const validateIdParam = validate(
@@ -72,6 +89,8 @@ module.exports = {
   validate,
   validateCreateProduct,
   validateUpdateProduct,
+  validateCreateCategory,
+  validateUpdateCategory,
   validateIdParam,
   validateFilterProducts
 };

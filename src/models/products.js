@@ -4,8 +4,11 @@
  * @property {string} name - Название товара
  * @property {number} price - Цена товара
  * @property {string} description - Описание товара
- * @property {string} category - Категория товара
- * @property {boolean} inStock - Наличие товара на складе
+ * @property {number|null} category_id - ID категории товара
+ * @property {string|null} category_name - Название категории товара
+ * @property {boolean} in_stock - Наличие товара на складе
+ * @property {string} created_at - Дата создания
+ * @property {string} updated_at - Дата обновления
  */
 
 /**
@@ -13,8 +16,8 @@
  * @property {string} name - Название товара
  * @property {number} price - Цена товара
  * @property {string} [description] - Описание товара
- * @property {string} [category] - Категория товара
- * @property {boolean} [inStock] - Наличие товара на складе
+ * @property {number} [category_id] - ID категории товара
+ * @property {boolean} [in_stock] - Наличие товара на складе
  */
 
 /**
@@ -22,179 +25,328 @@
  * @property {string} [name] - Название товара
  * @property {number} [price] - Цена товара
  * @property {string} [description] - Описание товара
- * @property {string} [category] - Категория товара
- * @property {boolean} [inStock] - Наличие товара на складе
+ * @property {number} [category_id] - ID категории товара
+ * @property {boolean} [in_stock] - Наличие товара на складе
  */
 
-// Модель для работы с товарами
+const database = require('../config/database');
+
+/**
+ * Модель для работы с товарами
+ */
 class ProductModel {
-  constructor() {
-    this.products = [
-      {
-        id: 1,
-        name: 'iPhone 15',
-        price: 999,
-        description: 'Новейший смартфон от Apple',
-        category: 'Электроника',
-        inStock: true
-      },
-      {
-        id: 2,
-        name: 'MacBook Pro',
-        price: 1999,
-        description: 'Профессиональный ноутбук для работы',
-        category: 'Электроника',
-        inStock: true
-      },
-      {
-        id: 3,
-        name: 'Nike Air Max',
-        price: 120,
-        description: 'Удобные кроссовки для спорта',
-        category: 'Обувь',
-        inStock: false
-      }
-    ];
-    
-    // Переменная для генерации уникальных ID
-    this.nextId = 4;
-  }
 
   /**
    * Получить все товары
-   * @returns {Product[]} Массив всех товаров
+   * @returns {Promise<Product[]>} Массив всех товаров
    */
-  getAllProducts() {
-    return this.products;
+  async getAllProducts() {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      const query = `
+        SELECT 
+          p.id, 
+          p.name, 
+          p.price, 
+          p.description, 
+          p.category_id,
+          c.name as category_name,
+          p.in_stock, 
+          p.created_at, 
+          p.updated_at
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        ORDER BY p.name ASC
+      `;
+      
+      db.all(query, [], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
   }
 
   /**
    * Получить товар по ID
    * @param {number} id - ID товара
-   * @returns {Product|null} Товар или null если не найден
+   * @returns {Promise<Product|null>} Товар или null если не найден
    */
-  getProductById(id) {
-    return this.products.find(product => product.id === id);
+  async getProductById(id) {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      const query = `
+        SELECT 
+          p.id, 
+          p.name, 
+          p.price, 
+          p.description, 
+          p.category_id,
+          c.name as category_name,
+          p.in_stock, 
+          p.created_at, 
+          p.updated_at
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.id = ?
+      `;
+      
+      db.get(query, [id], (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row || null);
+        }
+      });
+    });
   }
 
   /**
    * Создать новый товар
    * @param {CreateProductData} productData - Данные для создания товара
-   * @returns {Product} Созданный товар
+   * @returns {Promise<Product>} Созданный товар
    */
-  createProduct(productData) {
-    const newProduct = {
-      id: this.nextId++,
-      name: productData.name,
-      price: parseFloat(productData.price),
-      description: productData.description || '',
-      category: productData.category || 'Без категории',
-      inStock: productData.inStock !== undefined ? Boolean(productData.inStock) : true
-    };
-    
-    this.products.push(newProduct);
-    return newProduct;
+  async createProduct(productData) {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      const query = `
+        INSERT INTO products (name, price, description, category_id, in_stock) 
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      
+      // Обрабатываем значения по умолчанию
+      const values = [
+        productData.name,
+        productData.price,
+        productData.description || '',
+        productData.category_id || null,
+        productData.in_stock !== undefined ? productData.in_stock : true
+      ];
+      
+      // Сохраняем ссылку на экземпляр класса
+      const self = this;
+      
+      db.run(query, values, function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          // Получаем созданный товар по lastID
+          const productId = this.lastID;
+          // Используем сохраненную ссылку на экземпляр класса
+          self.getProductById(productId).then(resolve).catch(reject);
+        }
+      });
+    });
   }
 
   /**
    * Частично обновить товар (PATCH)
    * @param {number} id - ID товара
    * @param {UpdateProductData} productData - Данные для обновления
-   * @returns {Product|null} Обновленный товар или null если не найден
+   * @returns {Promise<Product|null>} Обновленный товар или null если не найден
    */
-  updateProduct(id, productData) {
-    const productIndex = this.products.findIndex(product => product.id === id);
-    
-    if (productIndex === -1) {
-      return null;
-    }
-    
-    // Обновляем только переданные поля
-    const updatedProduct = { ...this.products[productIndex] };
-    
-    if (productData.name !== undefined) {
-      updatedProduct.name = productData.name;
-    }
-    
-    if (productData.price !== undefined) {
-      updatedProduct.price = parseFloat(productData.price);
-    }
-    
-    if (productData.description !== undefined) {
-      updatedProduct.description = productData.description;
-    }
-    
-    if (productData.category !== undefined) {
-      updatedProduct.category = productData.category;
-    }
-    
-    if (productData.inStock !== undefined) {
-      updatedProduct.inStock = Boolean(productData.inStock);
-    }
-    
-    this.products[productIndex] = updatedProduct;
-    return updatedProduct;
+  async updateProduct(id, productData) {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      
+      // Формируем динамический запрос
+      const fields = [];
+      const values = [];
+      
+      if (productData.name !== undefined) {
+        fields.push('name = ?');
+        values.push(productData.name);
+      }
+      
+      if (productData.price !== undefined) {
+        fields.push('price = ?');
+        values.push(productData.price);
+      }
+      
+      if (productData.description !== undefined) {
+        fields.push('description = ?');
+        values.push(productData.description);
+      }
+      
+      if (productData.category_id !== undefined) {
+        fields.push('category_id = ?');
+        values.push(productData.category_id);
+      }
+      
+      if (productData.in_stock !== undefined) {
+        fields.push('in_stock = ?');
+        values.push(productData.in_stock);
+      }
+      
+      if (fields.length === 0) {
+        resolve(null);
+        return;
+      }
+      
+      fields.push('updated_at = CURRENT_TIMESTAMP');
+      values.push(id);
+      
+      const query = `UPDATE products SET ${fields.join(', ')} WHERE id = ?`;
+      
+      db.run(query, values, function(err) {
+        if (err) {
+          reject(err);
+        } else if (this.changes === 0) {
+          resolve(null);
+        } else {
+          // Получаем обновленный товар
+          this.getProductById(id).then(resolve).catch(reject);
+        }
+      }.bind(this));
+    });
   }
 
   /**
    * Удалить товар
    * @param {number} id - ID товара
-   * @returns {Product|null} Удаленный товар или null если не найден
+   * @returns {Promise<Product|null>} Удаленный товар или null если не найден
    */
-  deleteProduct(id) {
-    const productIndex = this.products.findIndex(product => product.id === id);
-    
-    if (productIndex === -1) {
-      return null;
-    }
-    
-    const deletedProduct = this.products[productIndex];
-    this.products.splice(productIndex, 1);
-    return deletedProduct;
+  async deleteProduct(id) {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      
+      // Сначала получаем товар
+      this.getProductById(id).then(product => {
+        if (!product) {
+          resolve(null);
+          return;
+        }
+        
+        // Удаляем товар
+        const query = 'DELETE FROM products WHERE id = ?';
+        db.run(query, [id], function(err) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(product);
+          }
+        });
+      }).catch(reject);
+    });
   }
 
   /**
    * Получить товары по категории
-   * @param {string} category - Категория товара
-   * @returns {Product[]} Массив товаров в указанной категории
+   * @param {number} categoryId - ID категории
+   * @returns {Promise<Product[]>} Массив товаров в указанной категории
    */
-  getProductsByCategory(category) {
-    return this.products.filter(product => 
-      product.category.toLowerCase() === category.toLowerCase()
-    );
+  async getProductsByCategory(categoryId) {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      const query = `
+        SELECT 
+          p.id, 
+          p.name, 
+          p.price, 
+          p.description, 
+          p.category_id,
+          c.name as category_name,
+          p.in_stock, 
+          p.created_at, 
+          p.updated_at
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.category_id = ?
+        ORDER BY p.name ASC
+      `;
+      
+      db.all(query, [categoryId], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
   }
 
   /**
    * Поиск товаров
    * @param {string} query - Поисковый запрос
-   * @returns {Product[]} Массив найденных товаров
+   * @returns {Promise<Product[]>} Массив найденных товаров
    */
-  searchProducts(query) {
-    return this.products.filter(product => 
-      product.name.toLowerCase().includes(query.toLowerCase()) ||
-      product.description.toLowerCase().includes(query.toLowerCase())
-    );
+  async searchProducts(query) {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      const searchQuery = `
+        SELECT 
+          p.id, 
+          p.name, 
+          p.price, 
+          p.description, 
+          p.category_id,
+          c.name as category_name,
+          p.in_stock, 
+          p.created_at, 
+          p.updated_at
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE LOWER(p.name) LIKE LOWER(?) OR LOWER(p.description) LIKE LOWER(?)
+        ORDER BY p.name ASC
+      `;
+      
+      const searchTerm = `%${query}%`;
+      db.all(searchQuery, [searchTerm, searchTerm], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
   }
 
   /**
    * Проверить существование товара с таким именем
    * @param {string} name - Название товара
    * @param {number|null} excludeId - ID товара для исключения из поиска
-   * @returns {Product|null} Товар с таким именем или null
+   * @returns {Promise<Product|null>} Товар с таким именем или null
    */
-  findProductByName(name, excludeId = null) {
-    return this.products.find(product => 
-      product.name.toLowerCase() === name.toLowerCase() && 
-      product.id !== excludeId
-    );
+  async findProductByName(name, excludeId = null) {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      let query = 'SELECT * FROM products WHERE LOWER(name) = LOWER(?)';
+      const params = [name];
+      
+      if (excludeId !== null) {
+        query += ' AND id != ?';
+        params.push(excludeId);
+      }
+      
+      db.get(query, params, (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row || null);
+        }
+      });
+    });
   }
 
   /**
    * Получить количество товаров
-   * @returns {number} Количество товаров
+   * @returns {Promise<number>} Количество товаров
    */
-  getProductsCount() {
-    return this.products.length;
+  async getProductsCount() {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      const query = 'SELECT COUNT(*) as count FROM products';
+      
+      db.get(query, [], (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row.count);
+        }
+      });
+    });
   }
 }
 

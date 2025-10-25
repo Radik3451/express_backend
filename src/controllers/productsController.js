@@ -12,20 +12,22 @@ class ProductsController {
    * @param {Request} req - Express request объект
    * @param {Response} res - Express response объект
    */
-  getAllProducts(req, res) {
+  async getAllProducts(req, res) {
     try {
-      const { category, q } = req.query;
+      const { category_id, q } = req.query;
       
-      let products = productModel.getAllProducts();
+      let products;
       
       // Фильтрация по категории
-      if (category) {
-        products = productModel.getProductsByCategory(category);
+      if (category_id) {
+        products = await productModel.getProductsByCategory(parseInt(category_id));
+      } else {
+        products = await productModel.getAllProducts();
       }
       
       // Поиск по названию и описанию
       if (q) {
-        if (category) {
+        if (category_id) {
           // Если уже есть фильтр по категории, ищем только в отфильтрованных товарах
           products = products.filter(product => 
             product.name.toLowerCase().includes(q.toLowerCase()) ||
@@ -33,7 +35,7 @@ class ProductsController {
           );
         } else {
           // Если нет фильтра по категории, ищем во всех товарах
-          products = productModel.searchProducts(q);
+          products = await productModel.searchProducts(q);
         }
       }
       
@@ -42,11 +44,12 @@ class ProductsController {
         data: products,
         count: products.length,
         filters: {
-          category: category || null,
+          category_id: category_id || null,
           search: q || null
         }
       });
     } catch (error) {
+      console.error('Ошибка при получении товаров:', error);
       res.status(500).json({
         success: false,
         message: 'Ошибка при получении товаров'
@@ -59,10 +62,10 @@ class ProductsController {
    * @param {Request} req - Express request объект
    * @param {Response} res - Express response объект
    */
-  getProductById(req, res) {
+  async getProductById(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const product = productModel.getProductById(id);
+      const product = await productModel.getProductById(id);
       
       if (!product) {
         return res.status(404).json({
@@ -76,6 +79,7 @@ class ProductsController {
         data: product
       });
     } catch (error) {
+      console.error('Ошибка при получении товара:', error);
       res.status(500).json({
         success: false,
         message: 'Ошибка при получении товара'
@@ -88,12 +92,12 @@ class ProductsController {
    * @param {Request} req - Express request объект
    * @param {Response} res - Express response объект
    */
-  createProduct(req, res) {
+  async createProduct(req, res) {
     try {
-      const { name, price, description, category, inStock } = req.body;
+      const { name, price, description, category_id, in_stock } = req.body;
       
       // Проверка на дублирование имени
-      const existingProduct = productModel.findProductByName(name);
+      const existingProduct = await productModel.findProductByName(name);
       if (existingProduct) {
         return res.status(400).json({
           success: false,
@@ -101,13 +105,16 @@ class ProductsController {
         });
       }
       
-      const newProduct = productModel.createProduct({
-        name,
-        price,
-        description,
-        category,
-        inStock
-      });
+      // Подготавливаем данные для создания
+      const productData = {
+        name: name.trim(),
+        price: parseFloat(price),
+        description: description ? description.trim() : '',
+        category_id: category_id ? parseInt(category_id) : null,
+        in_stock: in_stock !== undefined ? Boolean(in_stock) : true
+      };
+      
+      const newProduct = await productModel.createProduct(productData);
       
       res.status(201).json({
         success: true,
@@ -115,6 +122,7 @@ class ProductsController {
         data: newProduct
       });
     } catch (error) {
+      console.error('Ошибка при создании товара:', error);
       res.status(500).json({
         success: false,
         message: 'Ошибка при создании товара'
@@ -127,13 +135,13 @@ class ProductsController {
    * @param {Request} req - Express request объект
    * @param {Response} res - Express response объект
    */
-  updateProduct(req, res) {
+  async updateProduct(req, res) {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
       
       // Проверяем, что товар существует
-      const existingProduct = productModel.getProductById(id);
+      const existingProduct = await productModel.getProductById(id);
       if (!existingProduct) {
         return res.status(404).json({
           success: false,
@@ -143,7 +151,7 @@ class ProductsController {
       
       // Проверка на дублирование имени только если name передается
       if (updateData.name) {
-        const duplicateProduct = productModel.findProductByName(updateData.name, id);
+        const duplicateProduct = await productModel.findProductByName(updateData.name, id);
         if (duplicateProduct) {
           return res.status(400).json({
             success: false,
@@ -152,7 +160,7 @@ class ProductsController {
         }
       }
       
-      const updatedProduct = productModel.updateProduct(id, updateData);
+      const updatedProduct = await productModel.updateProduct(id, updateData);
       
       res.json({
         success: true,
@@ -160,6 +168,7 @@ class ProductsController {
         data: updatedProduct
       });
     } catch (error) {
+      console.error('Ошибка при обновлении товара:', error);
       res.status(500).json({
         success: false,
         message: 'Ошибка при обновлении товара'
@@ -172,10 +181,10 @@ class ProductsController {
    * @param {Request} req - Express request объект
    * @param {Response} res - Express response объект
    */
-  deleteProduct(req, res) {
+  async deleteProduct(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const deletedProduct = productModel.deleteProduct(id);
+      const deletedProduct = await productModel.deleteProduct(id);
       
       if (!deletedProduct) {
         return res.status(404).json({
@@ -190,13 +199,13 @@ class ProductsController {
         data: deletedProduct
       });
     } catch (error) {
+      console.error('Ошибка при удалении товара:', error);
       res.status(500).json({
         success: false,
         message: 'Ошибка при удалении товара'
       });
     }
   }
-
 }
 
 module.exports = new ProductsController();

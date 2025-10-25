@@ -36,6 +36,8 @@ const requestLogger = (req, res, next) => {
 const {
   validateCreateProduct,
   validateUpdateProduct,
+  validateCreateCategory,
+  validateUpdateCategory,
   validateIdParam,
   validateFilterProducts
 } = require('./validation');
@@ -46,6 +48,8 @@ module.exports = {
   requestLogger,
   validateCreateProduct,
   validateUpdateProduct,
+  validateCreateCategory,
+  validateUpdateCategory,
   validateIdParam,
   validateFilterProducts
 };
