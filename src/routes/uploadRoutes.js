@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const uploadController = require('../controllers/uploadController');
 const { authenticateToken } = require('../middleware/auth');
-const { validateFileType, saveFile } = require('../middleware/upload');
+const { validateFileType } = require('../middleware/upload');
 
 // Маршруты для загрузки файлов (все защищены JWT)
 
@@ -10,7 +10,6 @@ const { validateFileType, saveFile } = require('../middleware/upload');
 router.post('/',
   authenticateToken,
   validateFileType(),
-  saveFile('uploads'),
   uploadController.uploadFile
 );
 
@@ -21,6 +20,6 @@ router.get('/', authenticateToken, uploadController.getUploadedFiles);
 router.get('/:filename', authenticateToken, uploadController.getFile);
 
 // DELETE /api/upload/:filename - удалить файл
-router.delete('/:filename', authenticateToken, uploadController.deleteFile);
+router.delete('/:filename', authenticateToken, uploadController.deleteUploadedFile);
 
 module.exports = router;

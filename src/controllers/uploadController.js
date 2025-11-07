@@ -4,7 +4,7 @@
  */
 
 const path = require('path');
-const fs = require('fs').promises; // Используем promises версию fs
+const { saveFile, deleteFile, fileExists, getFileInfo } = require('../utils/fileUtils');
 
 class UploadController {
   /**
@@ -14,14 +14,15 @@ class UploadController {
    */
   async uploadFile(req, res) {
     try {
-      if (!req.uploadedFile) {
+      if (!req.files || !req.files.file) {
         return res.status(400).json({
           success: false,
-          message: 'Файл не был загружен или обработан'
+          message: 'Файл не был загружен'
         });
       }
 
-      const uploadedFile = req.uploadedFile;
+      const file = req.files.file;
+      const uploadedFile = await saveFile(file, 'uploads');
 
       res.json({
         success: true,
@@ -47,13 +48,11 @@ class UploadController {
   async getFile(req, res) {
     try {
       const { filename } = req.params;
-
       const filePath = path.join(__dirname, '../../uploads', filename);
 
-      // Проверяем, существует ли файл
-      try {
-        await fs.access(filePath);
-      } catch (error) {
+      // Проверяем существование файла
+      const exists = await fileExists(filePath);
+      if (!exists) {
         return res.status(404).json({
           success: false,
           message: 'Файл не найден.'
@@ -61,15 +60,15 @@ class UploadController {
       }
 
       // Получаем информацию о файле
-      const stats = await fs.stat(filePath);
+      const fileInfo = await getFileInfo(filePath);
 
       res.json({
         success: true,
         data: {
           name: filename,
-          size: stats.size,
-          created: stats.birthtime.toISOString(),
-          modified: stats.mtime.toISOString(),
+          size: fileInfo.size,
+          created: fileInfo.created.toISOString(),
+          modified: fileInfo.modified.toISOString(),
           url: `/uploads/${filename}`
         }
       });
@@ -135,25 +134,23 @@ class UploadController {
    * @param {Request} req - Express request объект
    * @param {Response} res - Express response объект
    */
-  async deleteFile(req, res) {
+  async deleteUploadedFile(req, res) {
     try {
       const fileName = req.params.filename;
-      const path = require('path');
-      const fs = require('fs');
-      
       const filePath = path.join(__dirname, '../../uploads', fileName);
-      
+
       // Проверяем существование файла
-      if (!fs.existsSync(filePath)) {
+      const exists = await fileExists(filePath);
+      if (!exists) {
         return res.status(404).json({
           success: false,
           message: 'Файл не найден'
         });
       }
-      
+
       // Удаляем файл
-      fs.unlinkSync(filePath);
-      
+      await deleteFile(filePath);
+
       res.json({
         success: true,
         message: 'Файл успешно удален',
