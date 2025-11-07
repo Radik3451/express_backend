@@ -6,7 +6,9 @@ const {
   validateRegisterUser,
   validateLoginUser,
   validateRefreshToken,
-  validateUpdateProfile
+  validateUpdateProfile,
+  validateForgotPassword,
+  validateResetPassword
 } = require('../middleware');
 
 // Маршруты для авторизации
@@ -34,5 +36,11 @@ router.get('/verify-email', authController.verifyEmail);
 
 // POST /api/auth/resend-verification - повторная отправка письма с подтверждением
 router.post('/resend-verification', authenticateToken, authController.resendVerificationEmail);
+
+// POST /api/auth/forgot-password - запрос на сброс пароля
+router.post('/forgot-password', validateForgotPassword, authController.forgotPassword);
+
+// POST /api/auth/reset-password - сброс пароля по токену
+router.post('/reset-password', validateResetPassword, authController.resetPassword);
 
 module.exports = router;

@@ -79,7 +79,9 @@ const {
   validateRegisterUser,
   validateLoginUser,
   validateUpdateProfile,
-  validateRefreshToken
+  validateRefreshToken,
+  validateForgotPassword,
+  validateResetPassword
 } = require('./validation');
 
 module.exports = {
@@ -95,5 +97,7 @@ module.exports = {
   validateRegisterUser,
   validateLoginUser,
   validateUpdateProfile,
-  validateRefreshToken
+  validateRefreshToken,
+  validateForgotPassword,
+  validateResetPassword
 };

@@ -4,6 +4,7 @@
  */
 
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const userModel = require('../models/users');
 const database = require('../config/database');
 const emailService = require('../utils/emailService');
@@ -25,6 +26,8 @@ class AuthController {
     this.updateProfile = this.updateProfile.bind(this);
     this.verifyEmail = this.verifyEmail.bind(this);
     this.resendVerificationEmail = this.resendVerificationEmail.bind(this);
+    this.forgotPassword = this.forgotPassword.bind(this);
+    this.resetPassword = this.resetPassword.bind(this);
   }
 
   /**
@@ -525,6 +528,137 @@ class AuthController {
       res.status(500).json({
         success: false,
         message: 'Ошибка при отправке письма с подтверждением'
+      });
+    }
+  }
+
+  /**
+   * Запрос на сброс пароля (отправка письма с токеном)
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+
+      // Ищем пользователя по email
+      const user = await userModel.getUserByEmail(email);
+
+      // Не раскрываем информацию о существовании пользователя
+      if (!user) {
+        return res.json({
+          success: true,
+          message: 'Если пользователь с таким email существует, на него будет отправлено письмо с инструкциями по сбросу пароля.'
+        });
+      }
+
+      // Генерируем JWT токен для сброса пароля (действителен 1 час)
+      const resetToken = jwt.sign(
+        {
+          userId: user.id,
+          email: user.email,
+          type: 'password-reset'
+        },
+        this.jwtSecret,
+        { expiresIn: '1h' }
+      );
+
+      // Отправляем письмо с токеном
+      await emailService.sendPasswordResetEmail(user.email, user.username, resetToken);
+
+      res.json({
+        success: true,
+        message: 'Если пользователь с таким email существует, на него будет отправлено письмо с инструкциями по сбросу пароля.'
+      });
+    } catch (error) {
+      console.error('Ошибка при запросе сброса пароля:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка при обработке запроса на сброс пароля'
+      });
+    }
+  }
+
+  /**
+   * Сброс пароля по токену
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
+  async resetPassword(req, res) {
+    try {
+      const { token, new_password } = req.body;
+
+      if (!token || !new_password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Токен и новый пароль обязательны'
+        });
+      }
+
+      // Проверяем и декодируем токен
+      let decoded;
+      try {
+        decoded = jwt.verify(token, this.jwtSecret);
+      } catch (jwtError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Недействительный или просроченный токен сброса пароля'
+        });
+      }
+
+      // Проверяем тип токена
+      if (decoded.type !== 'password-reset') {
+        return res.status(400).json({
+          success: false,
+          message: 'Недействительный тип токена'
+        });
+      }
+
+      // Получаем пользователя
+      const user = await userModel.getUserById(decoded.userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Пользователь не найден'
+        });
+      }
+
+      // Проверяем, что email в токене совпадает с email пользователя
+      if (user.email !== decoded.email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Недействительный токен'
+        });
+      }
+
+      // Хешируем новый пароль
+      const hashedPassword = await bcrypt.hash(new_password, 10);
+
+      // Обновляем пароль в базе данных
+      const db = database.getDb();
+      db.run(
+        'UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [hashedPassword, user.id],
+        (err) => {
+          if (err) {
+            console.error('Ошибка при обновлении пароля:', err);
+            return res.status(500).json({
+              success: false,
+              message: 'Ошибка при обновлении пароля'
+            });
+          }
+
+          res.json({
+            success: true,
+            message: 'Пароль успешно изменен. Теперь вы можете войти с новым паролем.'
+          });
+        }
+      );
+    } catch (error) {
+      console.error('Ошибка при сбросе пароля:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка при сбросе пароля'
       });
     }
   }

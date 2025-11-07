@@ -290,6 +290,43 @@ const refreshTokenSchema = Joi.object({
     })
 }).strict();
 
+/**
+ * Схема для запроса на сброс пароля
+ */
+const forgotPasswordSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .required()
+    .messages({
+      'string.empty': 'Email не может быть пустым',
+      'string.email': 'Некорректный формат email',
+      'any.required': 'Email обязателен'
+    })
+}).strict();
+
+/**
+ * Схема для сброса пароля
+ */
+const resetPasswordSchema = Joi.object({
+  token: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Токен не может быть пустым',
+      'any.required': 'Токен обязателен'
+    }),
+
+  new_password: Joi.string()
+    .min(6)
+    .max(100)
+    .required()
+    .messages({
+      'string.empty': 'Новый пароль не может быть пустым',
+      'string.min': 'Новый пароль должен содержать минимум 6 символов',
+      'string.max': 'Новый пароль не может превышать 100 символов',
+      'any.required': 'Новый пароль обязателен'
+    })
+}).strict();
+
 module.exports = {
   createProductSchema,
   updateProductSchema,
@@ -300,5 +337,7 @@ module.exports = {
   registerUserSchema,
   loginUserSchema,
   updateProfileSchema,
-  refreshTokenSchema
+  refreshTokenSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema
 };

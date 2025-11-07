@@ -130,6 +130,22 @@ const validateRefreshToken = validate(
   'body'
 );
 
+/**
+ * Middleware для валидации запроса на сброс пароля
+ */
+const validateForgotPassword = validate(
+  require('../schemas/productSchemas').forgotPasswordSchema,
+  'body'
+);
+
+/**
+ * Middleware для валидации сброса пароля
+ */
+const validateResetPassword = validate(
+  require('../schemas/productSchemas').resetPasswordSchema,
+  'body'
+);
+
 module.exports = {
   validate,
   validateCreateProduct,
@@ -141,5 +157,7 @@ module.exports = {
   validateRegisterUser,
   validateLoginUser,
   validateUpdateProfile,
-  validateRefreshToken
+  validateRefreshToken,
+  validateForgotPassword,
+  validateResetPassword
 };
