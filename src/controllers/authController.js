@@ -6,6 +6,7 @@
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/users');
 const database = require('../config/database');
+const emailService = require('../utils/emailService');
 
 class AuthController {
   constructor() {
@@ -22,6 +23,8 @@ class AuthController {
     this.logout = this.logout.bind(this);
     this.getProfile = this.getProfile.bind(this);
     this.updateProfile = this.updateProfile.bind(this);
+    this.verifyEmail = this.verifyEmail.bind(this);
+    this.resendVerificationEmail = this.resendVerificationEmail.bind(this);
   }
 
   /**
@@ -93,22 +96,39 @@ class AuthController {
         password: password
       };
 
+      // Генерируем токен подтверждения email заранее
+      const verificationToken = emailService.generateVerificationToken();
+      const verificationTokenExpiresAt = new Date();
+      verificationTokenExpiresAt.setHours(verificationTokenExpiresAt.getHours() + 24); // 24 часа
+
+      // Сначала проверяем возможность отправки письма
+      try {
+        await emailService.sendVerificationEmail(email.trim().toLowerCase(), username.trim(), verificationToken);
+      } catch (emailError) {
+        return res.status(500).json({
+          success: false,
+          message: 'Не удалось отправить письмо с подтверждением. Проверьте корректность email адреса и попробуйте позже.'
+        });
+      }
+
+      // Только после успешной отправки письма создаем пользователя
       const newUser = await userModel.createUser(userData);
+
+      // Сохраняем токен в базе данных
+      await userModel.saveEmailVerificationToken(newUser.id, verificationToken, verificationTokenExpiresAt);
 
       // Генерируем токены
       const tokens = this.generateTokens(newUser);
 
-      // Сохраняем refresh токен в базе данных
-      await userModel.saveRefreshToken(newUser.id, tokens.refreshToken, tokens.refreshTokenExpiresAt);
-
       res.status(201).json({
         success: true,
-        message: 'Пользователь успешно зарегистрирован',
+        message: 'Пользователь успешно зарегистрирован. Проверьте вашу почту для подтверждения email.',
         data: {
           user: {
             id: newUser.id,
             username: newUser.username,
             email: newUser.email,
+            email_verified: false,
             created_at: newUser.created_at
           },
           accessToken: tokens.accessToken,
@@ -155,9 +175,6 @@ class AuthController {
       // Генерируем токены
       const tokens = this.generateTokens(user);
 
-      // Сохраняем refresh токен в базе данных
-      await userModel.saveRefreshToken(user.id, tokens.refreshToken, tokens.refreshTokenExpiresAt);
-
       res.json({
         success: true,
         message: 'Успешная авторизация',
@@ -166,6 +183,7 @@ class AuthController {
             id: user.id,
             username: user.username,
             email: user.email,
+            email_verified: Boolean(user.email_verified),
             created_at: user.created_at
           },
           accessToken: tokens.accessToken,
@@ -198,20 +216,36 @@ class AuthController {
         });
       }
 
-      // Проверяем refresh токен в базе данных
-      const user = await userModel.findByRefreshToken(refresh_token);
-      if (!user) {
+      // Проверяем и декодируем refresh токен
+      let decoded;
+      try {
+        decoded = jwt.verify(refresh_token, this.jwtRefreshSecret);
+      } catch (jwtError) {
         return res.status(401).json({
           success: false,
           message: 'Недействительный или просроченный refresh токен'
         });
       }
 
+      // Проверяем тип токена
+      if (decoded.type !== 'refresh') {
+        return res.status(401).json({
+          success: false,
+          message: 'Недействительный тип токена'
+        });
+      }
+
+      // Получаем пользователя из базы данных
+      const user = await userModel.getUserById(decoded.userId);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Пользователь не найден'
+        });
+      }
+
       // Генерируем новые токены
       const tokens = this.generateTokens(user);
-
-      // Обновляем refresh токен в базе данных
-      await userModel.saveRefreshToken(user.id, tokens.refreshToken, tokens.refreshTokenExpiresAt);
 
       res.json({
         success: true,
@@ -232,20 +266,19 @@ class AuthController {
   }
 
   /**
-   * Выход из системы (удаление refresh токена)
-   * @param {Request} req - Express request объект
+   * Выход из системы
+   * @param {Request} _req - Express request объект (не используется)
    * @param {Response} res - Express response объект
+   * @note Refresh токены больше не хранятся на сервере - клиент должен удалить их локально
    */
-  async logout(req, res) {
+  async logout(_req, res) {
     try {
-      const userId = req.user.userId;
-
-      // Удаляем refresh токен из базы данных
-      await userModel.removeRefreshToken(userId);
+      // Refresh токены не хранятся в БД, поэтому logout просто подтверждает выход
+      // Клиент должен удалить токены из своего хранилища (localStorage, cookies и т.д.)
 
       res.json({
         success: true,
-        message: 'Успешный выход из системы'
+        message: 'Успешный выход из системы. Удалите токены на клиенте.'
       });
     } catch (error) {
       console.error('Ошибка при выходе из системы:', error);
@@ -279,6 +312,7 @@ class AuthController {
             id: user.id,
             username: user.username,
             email: user.email,
+            email_verified: Boolean(user.email_verified),
             created_at: user.created_at,
             updated_at: user.updated_at
           }
@@ -378,6 +412,7 @@ class AuthController {
               id: updatedUser.id,
               username: updatedUser.username,
               email: updatedUser.email,
+              email_verified: Boolean(updatedUser.email_verified),
               created_at: updatedUser.created_at,
               updated_at: updatedUser.updated_at
             }
@@ -389,6 +424,107 @@ class AuthController {
       res.status(500).json({
         success: false,
         message: 'Ошибка при обновлении профиля пользователя'
+      });
+    }
+  }
+
+  /**
+   * Подтверждение email по токену
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
+  async verifyEmail(req, res) {
+    try {
+      const { token } = req.query;
+
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          message: 'Токен подтверждения не предоставлен'
+        });
+      }
+
+      // Находим пользователя по токену
+      const user = await userModel.findByEmailVerificationToken(token);
+
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Недействительный или просроченный токен подтверждения'
+        });
+      }
+
+      // Проверяем, не подтвержден ли уже email
+      if (user.email_verified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email уже подтвержден'
+        });
+      }
+
+      // Подтверждаем email
+      await userModel.verifyEmail(user.id);
+
+      res.json({
+        success: true,
+        message: 'Email успешно подтвержден! Теперь у вас есть полный доступ к сервису.'
+      });
+    } catch (error) {
+      console.error('Ошибка при подтверждении email:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка при подтверждении email'
+      });
+    }
+  }
+
+  /**
+   * Повторная отправка письма с подтверждением email
+   * @param {Request} req - Express request объект
+   * @param {Response} res - Express response объект
+   */
+  async resendVerificationEmail(req, res) {
+    try {
+      const userId = req.user.userId;
+
+      // Получаем пользователя
+      const user = await userModel.getUserByEmail(req.user.email);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Пользователь не найден'
+        });
+      }
+
+      // Проверяем, не подтвержден ли уже email
+      if (user.email_verified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email уже подтвержден'
+        });
+      }
+
+      // Генерируем новый токен подтверждения
+      const verificationToken = emailService.generateVerificationToken();
+      const verificationTokenExpiresAt = new Date();
+      verificationTokenExpiresAt.setHours(verificationTokenExpiresAt.getHours() + 24); // 24 часа
+
+      // Сохраняем токен в базе данных
+      await userModel.saveEmailVerificationToken(userId, verificationToken, verificationTokenExpiresAt);
+
+      // Отправляем письмо с подтверждением
+      await emailService.sendVerificationEmail(user.email, user.username, verificationToken);
+
+      res.json({
+        success: true,
+        message: 'Письмо с подтверждением отправлено повторно. Проверьте вашу почту.'
+      });
+    } catch (error) {
+      console.error('Ошибка при повторной отправке письма:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка при отправке письма с подтверждением'
       });
     }
   }

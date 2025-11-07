@@ -5,7 +5,8 @@ const { authenticateToken } = require('../middleware/auth');
 const {
   validateRegisterUser,
   validateLoginUser,
-  validateRefreshToken
+  validateRefreshToken,
+  validateUpdateProfile
 } = require('../middleware');
 
 // Маршруты для авторизации
@@ -21,5 +22,17 @@ router.post('/refresh', validateRefreshToken, authController.refresh);
 
 // POST /api/auth/logout - выход из системы
 router.post('/logout', authenticateToken, authController.logout);
+
+// GET /api/auth/profile - получить информацию о текущем пользователе
+router.get('/profile', authenticateToken, authController.getProfile);
+
+// PATCH /api/auth/profile - обновить профиль пользователя
+router.patch('/profile', authenticateToken, validateUpdateProfile, authController.updateProfile);
+
+// GET /api/auth/verify-email - подтверждение email по токену
+router.get('/verify-email', authController.verifyEmail);
+
+// POST /api/auth/resend-verification - повторная отправка письма с подтверждением
+router.post('/resend-verification', authenticateToken, authController.resendVerificationEmail);
 
 module.exports = router;

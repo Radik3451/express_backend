@@ -235,23 +235,24 @@ class UserModel {
     });
   }
 
+
   /**
-   * Сохранить refresh токен для пользователя
+   * Сохранить токен подтверждения email
    * @param {number} userId - ID пользователя
-   * @param {string} refreshToken - Refresh токен
+   * @param {string} token - Токен подтверждения
    * @param {Date} expiresAt - Дата истечения токена
    * @returns {Promise<void>}
    */
-  async saveRefreshToken(userId, refreshToken, expiresAt) {
+  async saveEmailVerificationToken(userId, token, expiresAt) {
     return new Promise((resolve, reject) => {
       const db = database.getDb();
       const query = `
-        UPDATE users 
-        SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = CURRENT_TIMESTAMP 
+        UPDATE users
+        SET email_verification_token = ?, email_verification_token_expires_at = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
 
-      db.run(query, [refreshToken, expiresAt.toISOString(), userId], (err) => {
+      db.run(query, [token, expiresAt.toISOString(), userId], (err) => {
         if (err) {
           reject(err);
         } else {
@@ -262,20 +263,19 @@ class UserModel {
   }
 
   /**
-   * Найти пользователя по refresh токену
-   * @param {string} refreshToken - Refresh токен
+   * Найти пользователя по токену подтверждения email
+   * @param {string} token - Токен подтверждения
    * @returns {Promise<User|null>} Пользователь или null
    */
-  async findByRefreshToken(refreshToken) {
+  async findByEmailVerificationToken(token) {
     return new Promise((resolve, reject) => {
       const db = database.getDb();
       const query = `
-        SELECT id, username, email, password_hash, refresh_token, refresh_token_expires_at, created_at, updated_at 
-        FROM users 
-        WHERE refresh_token = ? AND refresh_token_expires_at > datetime('now')
+        SELECT * FROM users
+        WHERE email_verification_token = ? AND email_verification_token_expires_at > datetime('now')
       `;
 
-      db.get(query, [refreshToken], (err, row) => {
+      db.get(query, [token], (err, row) => {
         if (err) {
           reject(err);
         } else {
@@ -286,16 +286,19 @@ class UserModel {
   }
 
   /**
-   * Удалить refresh токен пользователя
+   * Подтвердить email пользователя
    * @param {number} userId - ID пользователя
    * @returns {Promise<void>}
    */
-  async removeRefreshToken(userId) {
+  async verifyEmail(userId) {
     return new Promise((resolve, reject) => {
       const db = database.getDb();
       const query = `
-        UPDATE users 
-        SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = CURRENT_TIMESTAMP 
+        UPDATE users
+        SET email_verified = 1,
+            email_verification_token = NULL,
+            email_verification_token_expires_at = NULL,
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
 
@@ -304,6 +307,26 @@ class UserModel {
           reject(err);
         } else {
           resolve();
+        }
+      });
+    });
+  }
+
+  /**
+   * Проверить, подтвержден ли email пользователя
+   * @param {number} userId - ID пользователя
+   * @returns {Promise<boolean>}
+   */
+  async isEmailVerified(userId) {
+    return new Promise((resolve, reject) => {
+      const db = database.getDb();
+      const query = 'SELECT email_verified FROM users WHERE id = ?';
+
+      db.get(query, [userId], (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row ? Boolean(row.email_verified) : false);
         }
       });
     });

@@ -64,8 +64,9 @@ class Database {
           username TEXT NOT NULL UNIQUE,
           email TEXT NOT NULL UNIQUE,
           password_hash TEXT NOT NULL,
-          refresh_token TEXT,
-          refresh_token_expires_at DATETIME,
+          email_verified BOOLEAN DEFAULT 0,
+          email_verification_token TEXT,
+          email_verification_token_expires_at DATETIME,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )

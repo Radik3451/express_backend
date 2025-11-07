@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yaml');
@@ -11,6 +12,7 @@ const uploadRoutes = require('./src/routes/uploadRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const { errorHandler, notFoundHandler, requestLogger } = require('./src/middleware');
 const { uploadMiddleware } = require('./src/middleware/upload');
+const emailService = require('./src/utils/emailService');
 
 const app = express();
 
@@ -65,10 +67,20 @@ async function startServer() {
   try {
     // Подключение к базе данных
     await database.connect();
-    
+
     // Инициализация таблиц
     await database.initTables();
-    
+
+    // Проверка подключения к SMTP серверу
+    console.log('📧 Проверка подключения к SMTP серверу...');
+    const isEmailConnected = await emailService.verifyConnection();
+    if (!isEmailConnected) {
+      console.error('❌ Не удалось подключиться к SMTP серверу');
+      console.error('   Проверьте настройки EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS в .env файле');
+      process.exit(1);
+    }
+    console.log('✅ SMTP сервер готов к отправке писем');
+
     // Запуск сервера
     app.listen(config.port, () => {
       console.log(`🚀 Сервер запущен на порту ${config.port}`);

@@ -24,6 +24,8 @@ const authenticateToken = (req, res, next) => {
   // Проверяем токен
   jwt.verify(token, jwtSecret, (err, user) => {
     if (err) {
+      console.error('❌ JWT verification error:', err.message);
+      console.error('   Token:', token.substring(0, 20) + '...');
       return res.status(403).json({
         success: false,
         message: 'Недействительный токен доступа'
