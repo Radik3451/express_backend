@@ -10,6 +10,7 @@ const productsRoutes = require('./src/routes/productsRoutes');
 const categoriesRoutes = require('./src/routes/categoriesRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
 const authRoutes = require('./src/routes/authRoutes');
+const ordersRoutes = require('./src/routes/ordersRoutes');
 const { errorHandler, notFoundHandler, requestLogger } = require('./src/middleware');
 const { uploadMiddleware } = require('./src/middleware/upload');
 const emailService = require('./src/utils/emailService');
@@ -51,6 +52,7 @@ app.use(`${config.api.baseUrl}/auth`, authRoutes);
 app.use(`${config.api.baseUrl}/products`, productsRoutes);
 app.use(`${config.api.baseUrl}/categories`, categoriesRoutes);
 app.use(`${config.api.baseUrl}/upload`, uploadRoutes);
+app.use(`${config.api.baseUrl}/orders`, ordersRoutes);
 
 // Статические файлы (после API маршрутов)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

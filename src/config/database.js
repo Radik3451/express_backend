@@ -72,6 +72,34 @@ class Database {
         )
       `;
 
+      const createOrdersTable = `
+        CREATE TABLE IF NOT EXISTS orders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          total_amount REAL NOT NULL,
+          delivery_address TEXT,
+          phone TEXT,
+          notes TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+      `;
+
+      const createOrderItemsTable = `
+        CREATE TABLE IF NOT EXISTS order_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          order_id INTEGER NOT NULL,
+          product_id INTEGER NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          price REAL NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
+          FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE RESTRICT
+        )
+      `;
+
       this.db.serialize(() => {
         this.db.run(createCategoriesTable, (err) => {
           if (err) {
@@ -98,6 +126,24 @@ class Database {
             return;
           }
           console.log('✅ Таблица users создана');
+        });
+
+        this.db.run(createOrdersTable, (err) => {
+          if (err) {
+            console.error('Ошибка создания таблицы orders:', err.message);
+            reject(err);
+            return;
+          }
+          console.log('✅ Таблица orders создана');
+        });
+
+        this.db.run(createOrderItemsTable, (err) => {
+          if (err) {
+            console.error('Ошибка создания таблицы order_items:', err.message);
+            reject(err);
+            return;
+          }
+          console.log('✅ Таблица order_items создана');
         });
 
         // Добавляем начальные данные

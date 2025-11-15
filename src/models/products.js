@@ -40,26 +40,54 @@ class ProductModel {
    * Получить все товары
    * @returns {Promise<Product[]>} Массив всех товаров
    */
-  async getAllProducts() {
+  async getAllProducts(page = null, limit = null, categoryId = null, search = null) {
     return new Promise((resolve, reject) => {
       const db = database.getDb();
-      const query = `
-        SELECT 
-          p.id, 
-          p.name, 
-          p.price, 
-          p.description, 
+      const params = [];
+
+      let query = `
+        SELECT
+          p.id,
+          p.name,
+          p.price,
+          p.description,
           p.category_id,
           c.name as category_name,
-          p.in_stock, 
-          p.created_at, 
+          p.in_stock,
+          p.created_at,
           p.updated_at
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
-        ORDER BY p.name ASC
       `;
-      
-      db.all(query, [], (err, rows) => {
+
+      const conditions = [];
+
+      // Фильтр по категории
+      if (categoryId) {
+        conditions.push('p.category_id = ?');
+        params.push(categoryId);
+      }
+
+      // Поиск по названию и описанию
+      if (search) {
+        conditions.push('(p.name LIKE ? OR p.description LIKE ?)');
+        params.push(`%${search}%`, `%${search}%`);
+      }
+
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+      }
+
+      query += ' ORDER BY p.name ASC';
+
+      // Пагинация
+      if (page !== null && limit !== null) {
+        const offset = (page - 1) * limit;
+        query += ' LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+      }
+
+      db.all(query, params, (err, rows) => {
         if (err) {
           reject(err);
         } else {
@@ -331,15 +359,36 @@ class ProductModel {
   }
 
   /**
-   * Получить количество товаров
+   * Получить количество товаров с фильтрами
+   * @param {number|null} categoryId - ID категории для фильтрации
+   * @param {string|null} search - Поисковый запрос
    * @returns {Promise<number>} Количество товаров
    */
-  async getProductsCount() {
+  async getProductsCount(categoryId = null, search = null) {
     return new Promise((resolve, reject) => {
       const db = database.getDb();
-      const query = 'SELECT COUNT(*) as count FROM products';
-      
-      db.get(query, [], (err, row) => {
+      const params = [];
+      let query = 'SELECT COUNT(*) as count FROM products p';
+
+      const conditions = [];
+
+      // Фильтр по категории
+      if (categoryId) {
+        conditions.push('p.category_id = ?');
+        params.push(categoryId);
+      }
+
+      // Поиск по названию и описанию
+      if (search) {
+        conditions.push('(p.name LIKE ? OR p.description LIKE ?)');
+        params.push(`%${search}%`, `%${search}%`);
+      }
+
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+      }
+
+      db.get(query, params, (err, row) => {
         if (err) {
           reject(err);
         } else {

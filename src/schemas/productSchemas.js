@@ -179,12 +179,34 @@ const filterProductsSchema = Joi.object({
       'number.integer': 'ID категории должен быть целым числом',
       'number.positive': 'ID категории должен быть положительным числом'
     }),
-  
+
   q: Joi.string()
     .max(100)
     .optional()
     .messages({
       'string.max': 'Поисковый запрос не может превышать 100 символов'
+    }),
+
+  page: Joi.number()
+    .integer()
+    .min(1)
+    .optional()
+    .messages({
+      'number.base': 'Номер страницы должен быть числом',
+      'number.integer': 'Номер страницы должен быть целым числом',
+      'number.min': 'Номер страницы должен быть минимум 1'
+    }),
+
+  limit: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .optional()
+    .messages({
+      'number.base': 'Лимит должен быть числом',
+      'number.integer': 'Лимит должен быть целым числом',
+      'number.min': 'Лимит должен быть минимум 1',
+      'number.max': 'Лимит не может превышать 100'
     })
 });
 
@@ -327,6 +349,103 @@ const resetPasswordSchema = Joi.object({
     })
 }).strict();
 
+/**
+ * Схема для создания заказа
+ */
+const createOrderSchema = Joi.object({
+  items: Joi.array()
+    .items(
+      Joi.object({
+        product_id: Joi.number()
+          .integer()
+          .positive()
+          .required()
+          .messages({
+            'number.base': 'ID товара должен быть числом',
+            'number.integer': 'ID товара должен быть целым числом',
+            'number.positive': 'ID товара должен быть положительным числом',
+            'any.required': 'ID товара обязателен'
+          }),
+        quantity: Joi.number()
+          .integer()
+          .min(1)
+          .required()
+          .messages({
+            'number.base': 'Количество должно быть числом',
+            'number.integer': 'Количество должно быть целым числом',
+            'number.min': 'Количество должно быть минимум 1',
+            'any.required': 'Количество обязательно'
+          })
+      })
+    )
+    .min(1)
+    .required()
+    .messages({
+      'array.min': 'Заказ должен содержать минимум 1 товар',
+      'any.required': 'Список товаров обязателен'
+    }),
+
+  delivery_address: Joi.string()
+    .max(500)
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.max': 'Адрес доставки не может превышать 500 символов'
+    }),
+
+  phone: Joi.string()
+    .pattern(/^\+?[0-9\s\-()]{10,20}$/)
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.pattern.base': 'Некорректный формат номера телефона'
+    }),
+
+  notes: Joi.string()
+    .max(1000)
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.max': 'Примечания не могут превышать 1000 символов'
+    })
+}).strict();
+
+/**
+ * Схема для обновления заказа
+ */
+const updateOrderSchema = Joi.object({
+  status: Joi.string()
+    .valid('pending', 'processing', 'shipped', 'delivered', 'cancelled')
+    .optional()
+    .messages({
+      'any.only': 'Статус должен быть одним из: pending, processing, shipped, delivered, cancelled'
+    }),
+
+  delivery_address: Joi.string()
+    .max(500)
+    .optional()
+    .messages({
+      'string.max': 'Адрес доставки не может превышать 500 символов'
+    }),
+
+  phone: Joi.string()
+    .pattern(/^\+?[0-9\s\-()]{10,20}$/)
+    .optional()
+    .messages({
+      'string.pattern.base': 'Некорректный формат номера телефона'
+    }),
+
+  notes: Joi.string()
+    .max(1000)
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.max': 'Примечания не могут превышать 1000 символов'
+    })
+}).min(1).messages({
+  'object.min': 'Необходимо передать хотя бы одно поле для обновления'
+}).strict();
+
 module.exports = {
   createProductSchema,
   updateProductSchema,
@@ -339,5 +458,7 @@ module.exports = {
   updateProfileSchema,
   refreshTokenSchema,
   forgotPasswordSchema,
-  resetPasswordSchema
+  resetPasswordSchema,
+  createOrderSchema,
+  updateOrderSchema
 };

@@ -81,7 +81,9 @@ const {
   validateUpdateProfile,
   validateRefreshToken,
   validateForgotPassword,
-  validateResetPassword
+  validateResetPassword,
+  validateCreateOrder,
+  validateUpdateOrder
 } = require('./validation');
 
 module.exports = {
@@ -99,5 +101,7 @@ module.exports = {
   validateUpdateProfile,
   validateRefreshToken,
   validateForgotPassword,
-  validateResetPassword
+  validateResetPassword,
+  validateCreateOrder,
+  validateUpdateOrder
 };

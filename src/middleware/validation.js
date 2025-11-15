@@ -146,6 +146,22 @@ const validateResetPassword = validate(
   'body'
 );
 
+/**
+ * Middleware для валидации создания заказа
+ */
+const validateCreateOrder = validate(
+  require('../schemas/productSchemas').createOrderSchema,
+  'body'
+);
+
+/**
+ * Middleware для валидации обновления заказа
+ */
+const validateUpdateOrder = validate(
+  require('../schemas/productSchemas').updateOrderSchema,
+  'body'
+);
+
 module.exports = {
   validate,
   validateCreateProduct,
@@ -159,5 +175,7 @@ module.exports = {
   validateUpdateProfile,
   validateRefreshToken,
   validateForgotPassword,
-  validateResetPassword
+  validateResetPassword,
+  validateCreateOrder,
+  validateUpdateOrder
 };

@@ -318,6 +318,158 @@ components:
               type: string
               example: "15m"
 
+    Order:
+      type: object
+      required:
+        - id
+        - user_id
+        - status
+        - total_amount
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [pending, processing, shipped, delivered, cancelled]
+          example: "pending"
+        total_amount:
+          type: number
+          format: float
+          minimum: 0
+          example: 2997.00
+        delivery_address:
+          type: string
+          maxLength: 500
+          nullable: true
+          example: "ул. Ленина, д. 1, кв. 5"
+        phone:
+          type: string
+          nullable: true
+          example: "+79991234567"
+        notes:
+          type: string
+          maxLength: 1000
+          nullable: true
+          example: "Доставка с 10 до 18"
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2024-01-01T10:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2024-01-01T10:00:00.000Z"
+
+    OrderItem:
+      type: object
+      required:
+        - id
+        - order_id
+        - product_id
+        - quantity
+        - price
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        order_id:
+          type: integer
+          example: 1
+        product_id:
+          type: integer
+          example: 1
+        product_name:
+          type: string
+          readOnly: true
+          example: "iPhone 15"
+        product_description:
+          type: string
+          readOnly: true
+          nullable: true
+          example: "Новейший смартфон от Apple"
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        price:
+          type: number
+          format: float
+          minimum: 0
+          example: 999.00
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2024-01-01T10:00:00.000Z"
+
+    CreateOrderRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - product_id
+              - quantity
+            properties:
+              product_id:
+                type: integer
+                minimum: 1
+                example: 1
+              quantity:
+                type: integer
+                minimum: 1
+                example: 2
+        delivery_address:
+          type: string
+          maxLength: 500
+          nullable: true
+          example: "ул. Ленина, д. 1, кв. 5"
+        phone:
+          type: string
+          pattern: "^\\+?[0-9\\s\\-()]{10,20}$"
+          nullable: true
+          example: "+79991234567"
+        notes:
+          type: string
+          maxLength: 1000
+          nullable: true
+          example: "Доставка с 10 до 18"
+
+    UpdateOrderRequest:
+      type: object
+      minProperties: 1
+      properties:
+        status:
+          type: string
+          enum: [pending, processing, shipped, delivered, cancelled]
+          example: "processing"
+        delivery_address:
+          type: string
+          maxLength: 500
+          example: "ул. Пушкина, д. 10"
+        phone:
+          type: string
+          pattern: "^\\+?[0-9\\s\\-()]{10,20}$"
+          example: "+79991234567"
+        notes:
+          type: string
+          maxLength: 1000
+          nullable: true
+          example: "Обновленные примечания"
+
     Error:
       type: object
       properties:
@@ -793,8 +945,8 @@ paths:
 
   /api/products:
     get:
-      summary: Получить товары с фильтрацией
-      description: Возвращает список товаров с возможностью фильтрации по категории и поиска
+      summary: Получить товары с фильтрацией и пагинацией
+      description: Возвращает список товаров с возможностью фильтрации по категории, поиска и пагинации
       parameters:
         - name: category_id
           in: query
@@ -810,6 +962,23 @@ paths:
           schema:
             type: string
             minLength: 1
+        - name: page
+          in: query
+          description: Номер страницы для пагинации
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Количество товаров на странице (1-100)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 10
       responses:
         '200':
           description: Список товаров
@@ -827,7 +996,12 @@ paths:
                       $ref: '#/components/schemas/Product'
                   count:
                     type: integer
-                    example: 3
+                    description: Количество товаров на текущей странице
+                    example: 10
+                  total:
+                    type: integer
+                    description: Общее количество товаров (без пагинации)
+                    example: 50
                   filters:
                     type: object
                     properties:
@@ -839,6 +1013,24 @@ paths:
                         type: string
                         nullable: true
                         example: "iPhone"
+                  pagination:
+                    type: object
+                    description: Информация о пагинации (присутствует только если указаны page и limit)
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      total:
+                        type: integer
+                        description: Общее количество товаров
+                        example: 50
+                      totalPages:
+                        type: integer
+                        description: Общее количество страниц
+                        example: 5
         '401':
           description: Требуется авторизация
           content:
@@ -1469,6 +1661,292 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Файл не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/orders:
+    get:
+      summary: Получить заказы текущего пользователя
+      description: Возвращает список всех заказов авторизованного пользователя
+      responses:
+        '200':
+          description: Список заказов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  count:
+                    type: integer
+                    example: 5
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Создать новый заказ
+      description: Создает новый заказ с автоматическим расчетом общей суммы
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Заказ успешно создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Заказ успешно создан"
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '400':
+          description: Ошибка валидации или товар недоступен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/orders/{id}:
+    get:
+      summary: Получить заказ по ID
+      description: Возвращает информацию о конкретном заказе пользователя
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID заказа
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Информация о заказе
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Обновить заказ
+      description: Обновляет информацию о заказе (статус, адрес, телефон, примечания)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID заказа
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderRequest'
+      responses:
+        '200':
+          description: Заказ успешно обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Заказ успешно обновлен"
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '400':
+          description: Ошибка валидации или нельзя изменить завершенный заказ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Удалить заказ
+      description: Удаляет заказ (только со статусом pending)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID заказа
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Заказ успешно удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Заказ успешно удален"
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+        '400':
+          description: Можно удалить только заказы в статусе pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/orders/{id}/items:
+    get:
+      summary: Получить товары заказа
+      description: Возвращает список всех товаров в заказе с информацией о продуктах
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID заказа
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Список товаров заказа
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderItem'
+                  count:
+                    type: integer
+                    example: 3
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Заказ не найден
           content:
             application/json:
               schema:

@@ -14,40 +14,57 @@ class ProductsController {
    */
   async getAllProducts(req, res) {
     try {
-      const { category_id, q } = req.query;
-      
-      let products;
-      
-      // Фильтрация по категории
-      if (category_id) {
-        products = await productModel.getProductsByCategory(parseInt(category_id));
-      } else {
-        products = await productModel.getAllProducts();
+      const { category_id, q, page, limit } = req.query;
+
+      // Параметры пагинации
+      const pageNum = page ? parseInt(page) : null;
+      const limitNum = limit ? parseInt(limit) : null;
+      const categoryIdNum = category_id ? parseInt(category_id) : null;
+
+      // Валидация пагинации
+      if (pageNum !== null && (isNaN(pageNum) || pageNum < 1)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Параметр page должен быть положительным числом'
+        });
       }
-      
-      // Поиск по названию и описанию
-      if (q) {
-        if (category_id) {
-          // Если уже есть фильтр по категории, ищем только в отфильтрованных товарах
-          products = products.filter(product => 
-            product.name.toLowerCase().includes(q.toLowerCase()) ||
-            product.description.toLowerCase().includes(q.toLowerCase())
-          );
-        } else {
-          // Если нет фильтра по категории, ищем во всех товарах
-          products = await productModel.searchProducts(q);
-        }
+
+      if (limitNum !== null && (isNaN(limitNum) || limitNum < 1 || limitNum > 100)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Параметр limit должен быть числом от 1 до 100'
+        });
       }
-      
-      res.json({
+
+      // Получаем товары с учетом пагинации и фильтров
+      const products = await productModel.getAllProducts(pageNum, limitNum, categoryIdNum, q);
+
+      // Получаем общее количество товаров с учетом фильтров
+      const totalCount = await productModel.getProductsCount(categoryIdNum, q);
+
+      const response = {
         success: true,
         data: products,
         count: products.length,
         filters: {
-          category_id: category_id || null,
+          category_id: categoryIdNum,
           search: q || null
         }
-      });
+      };
+
+      // Добавляем информацию о пагинации, если она используется
+      if (pageNum !== null && limitNum !== null) {
+        response.pagination = {
+          page: pageNum,
+          limit: limitNum,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limitNum)
+        };
+      } else {
+        response.total = totalCount;
+      }
+
+      res.json(response);
     } catch (error) {
       console.error('Ошибка при получении товаров:', error);
       res.status(500).json({
