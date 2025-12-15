@@ -4,11 +4,21 @@
  * @property {string} username - Имя пользователя
  * @property {string} email - Email пользователя
  * @property {string} password_hash - Хеш пароля
+ * @property {'user'|'manager'|'admin'} role - Роль пользователя
  * @property {string} [refresh_token] - Refresh токен
  * @property {string} [refresh_token_expires_at] - Дата истечения refresh токена
  * @property {string} created_at - Дата создания
  * @property {string} updated_at - Дата обновления
  */
+
+/**
+ * Доступные роли пользователей
+ */
+const ROLES = {
+  USER: 'user',       // Обычный пользователь - может просматривать товары и создавать заказы
+  MANAGER: 'manager', // Менеджер - может управлять товарами и категориями
+  ADMIN: 'admin'      // Администратор - полный доступ
+};
 
 /**
  * @typedef {Object} CreateUserData
@@ -38,7 +48,7 @@ class UserModel {
   async getAllUsers() {
     return new Promise((resolve, reject) => {
       const db = database.getDb();
-      const query = 'SELECT id, username, email, created_at, updated_at FROM users ORDER BY username ASC';
+      const query = 'SELECT id, username, email, role, created_at, updated_at FROM users ORDER BY username ASC';
 
       db.all(query, [], (err, rows) => {
         if (err) {
@@ -58,7 +68,7 @@ class UserModel {
   async getUserById(id) {
     return new Promise((resolve, reject) => {
       const db = database.getDb();
-      const query = 'SELECT id, username, email, created_at, updated_at FROM users WHERE id = ?';
+      const query = 'SELECT id, username, email, role, email_verified, created_at, updated_at FROM users WHERE id = ?';
 
       db.get(query, [id], (err, row) => {
         if (err) {
@@ -334,3 +344,4 @@ class UserModel {
 }
 
 module.exports = new UserModel();
+module.exports.ROLES = ROLES;

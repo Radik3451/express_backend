@@ -86,6 +86,15 @@ const {
   validateUpdateOrder
 } = require('./validation');
 
+// Экспорт ролевых middleware
+const {
+  requireRole,
+  adminOnly,
+  managerOrAdmin,
+  anyAuthenticated,
+  ROLES
+} = require('./roles');
+
 module.exports = {
   errorHandler,
   notFoundHandler,
@@ -103,5 +112,11 @@ module.exports = {
   validateForgotPassword,
   validateResetPassword,
   validateCreateOrder,
-  validateUpdateOrder
+  validateUpdateOrder,
+  // Ролевые middleware
+  requireRole,
+  adminOnly,
+  managerOrAdmin,
+  anyAuthenticated,
+  ROLES
 };

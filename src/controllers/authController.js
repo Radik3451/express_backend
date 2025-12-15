@@ -37,10 +37,11 @@ class AuthController {
    */
   generateTokens(user) {
     const accessToken = jwt.sign(
-      { 
-        userId: user.id, 
-        username: user.username, 
-        email: user.email 
+      {
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role || 'user'
       },
       this.jwtSecret,
       { expiresIn: this.jwtExpiresIn }
@@ -131,6 +132,7 @@ class AuthController {
             id: newUser.id,
             username: newUser.username,
             email: newUser.email,
+            role: newUser.role || 'user',
             email_verified: false,
             created_at: newUser.created_at
           },
@@ -186,6 +188,7 @@ class AuthController {
             id: user.id,
             username: user.username,
             email: user.email,
+            role: user.role || 'user',
             email_verified: Boolean(user.email_verified),
             created_at: user.created_at
           },
@@ -315,6 +318,7 @@ class AuthController {
             id: user.id,
             username: user.username,
             email: user.email,
+            role: user.role || 'user',
             email_verified: Boolean(user.email_verified),
             created_at: user.created_at,
             updated_at: user.updated_at
@@ -415,6 +419,7 @@ class AuthController {
               id: updatedUser.id,
               username: updatedUser.username,
               email: updatedUser.email,
+              role: updatedUser.role || 'user',
               email_verified: Boolean(updatedUser.email_verified),
               created_at: updatedUser.created_at,
               updated_at: updatedUser.updated_at

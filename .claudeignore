@@ -1,0 +1,44 @@
+# Файлы с секретами и конфиденциальной информацией
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Приватные ключи и сертификаты
+*.pem
+*.key
+*.cert
+*.p12
+id_rsa
+id_rsa.pub
+
+# Папки с секретами
+private/
+secrets/
+credentials/
+
+# Конфигурации с паролями
+config/secrets.js
+config/credentials.json
+config/production.json
+
+# База данных (содержит данные пользователей)
+*.sqlite
+*.db
+database.sqlite
+
+# Node modules
+node_modules/
+
+# Логи могут содержать чувствительную информацию
+logs/
+*.log
+
+# Временные файлы и кэш
+.cache/
+tmp/
+temp/
+*.tmp
+
+# Загруженные пользовательские файлы
+uploads/

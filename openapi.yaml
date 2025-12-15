@@ -230,6 +230,7 @@ components:
         - id
         - username
         - email
+        - role
       properties:
         id:
           type: integer
@@ -245,6 +246,19 @@ components:
           format: email
           maxLength: 100
           example: "john@example.com"
+        role:
+          type: string
+          enum: [user, manager, admin]
+          description: |
+            Роль пользователя:
+            - user: Обычный пользователь - может просматривать товары и создавать заказы
+            - manager: Менеджер - может управлять товарами и категориями
+            - admin: Администратор - полный доступ ко всем функциям
+          example: "user"
+        email_verified:
+          type: boolean
+          description: Подтвержден ли email пользователя
+          example: true
         created_at:
           type: string
           format: date-time
@@ -1046,7 +1060,9 @@ paths:
 
     post:
       summary: Создать новый товар
-      description: Создает новый товар в каталоге
+      description: |
+        Создает новый товар в каталоге.
+        **Требуемая роль:** manager или admin
       requestBody:
         required: true
         content:
@@ -1077,6 +1093,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещен (недостаточно прав)
           content:
             application/json:
               schema:
@@ -1134,7 +1156,9 @@ paths:
 
     patch:
       summary: Обновить товар
-      description: Частично обновляет товар по ID
+      description: |
+        Частично обновляет товар по ID.
+        **Требуемая роль:** manager или admin
       parameters:
         - name: id
           in: path
@@ -1177,6 +1201,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещен (недостаточно прав)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Товар не найден
           content:
@@ -1192,7 +1222,9 @@ paths:
 
     delete:
       summary: Удалить товар
-      description: Удаляет товар по ID
+      description: |
+        Удаляет товар по ID.
+        **Требуемая роль:** manager или admin
       parameters:
         - name: id
           in: path
@@ -1223,6 +1255,12 @@ paths:
                         example: 1
         '401':
           description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещен (недостаточно прав)
           content:
             application/json:
               schema:
@@ -1277,7 +1315,9 @@ paths:
 
     post:
       summary: Создать новую категорию
-      description: Создает новую категорию
+      description: |
+        Создает новую категорию.
+        **Требуемая роль:** manager или admin
       requestBody:
         required: true
         content:
@@ -1308,6 +1348,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещен (недостаточно прав)
           content:
             application/json:
               schema:
@@ -1365,7 +1411,9 @@ paths:
 
     patch:
       summary: Обновить категорию
-      description: Частично обновляет категорию по ID
+      description: |
+        Частично обновляет категорию по ID.
+        **Требуемая роль:** manager или admin
       parameters:
         - name: id
           in: path
@@ -1408,6 +1456,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещен (недостаточно прав)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Категория не найдена
           content:
@@ -1423,7 +1477,9 @@ paths:
 
     delete:
       summary: Удалить категорию
-      description: Удаляет категорию по ID
+      description: |
+        Удаляет категорию по ID.
+        **Требуемая роль:** manager или admin
       parameters:
         - name: id
           in: path
@@ -1458,6 +1514,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещен (недостаточно прав)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Категория не найдена
           content:
@@ -1476,6 +1538,8 @@ paths:
       summary: Загрузить файл
       description: |
         Загружает файл на сервер.
+        **Требуемая роль:** manager или admin
+
         Поддерживаемые типы:
         - Изображения: JPEG, PNG, GIF, WebP, SVG
         - Документы: PDF, DOC, DOCX, TXT, XLS, XLSX, PPT, PPTX
@@ -1517,6 +1581,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещен (недостаточно прав)
           content:
             application/json:
               schema:
@@ -1628,7 +1698,9 @@ paths:
 
     delete:
       summary: Удалить файл
-      description: Удаляет загруженный файл
+      description: |
+        Удаляет загруженный файл.
+        **Требуемая роль:** manager или admin
       parameters:
         - name: filename
           in: path
@@ -1659,8 +1731,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещен (недостаточно прав)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Файл не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/orders/all:
+    get:
+      summary: Получить все заказы (только admin)
+      description: |
+        Возвращает список всех заказов в системе.
+        **Требуемая роль:** admin
+      responses:
+        '200':
+          description: Список всех заказов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  count:
+                    type: integer
+                    example: 100
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещен (недостаточно прав)
           content:
             application/json:
               schema:

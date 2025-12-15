@@ -64,6 +64,7 @@ class Database {
           username TEXT NOT NULL UNIQUE,
           email TEXT NOT NULL UNIQUE,
           password_hash TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'user',
           email_verified BOOLEAN DEFAULT 0,
           email_verification_token TEXT,
           email_verification_token_expires_at DATETIME,
@@ -144,6 +145,15 @@ class Database {
             return;
           }
           console.log('✅ Таблица order_items создана');
+        });
+
+        // Миграция: добавляем поле role, если его нет
+        this.db.run(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`, (err) => {
+          if (err && !err.message.includes('duplicate column')) {
+            console.error('Ошибка миграции role:', err.message);
+          } else if (!err) {
+            console.log('✅ Миграция: добавлено поле role в таблицу users');
+          }
         });
 
         // Добавляем начальные данные
